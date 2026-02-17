@@ -2,8 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-important-information-disclaimer-block-from-the-australian-visa-status-check-screen-so-that-none-of-the-following-text-appears-anywhere-on-that-page-important-information-this-is-a-mock-visa-status-check-system-for-demonstration-purposes-only-status-information-is-managed-by-authenticated-users-and-for-official-visa-information-please-contact-the-relevant-government-authorities",
-      "featureTitle": "Remove the 'Important Information' disclaimer block from the Australian Visa Status Check screen so that none of the following text appears anywhere on that page: 'Important Information', 'This is a mock visa status check system for demonstration purposes only', 'Status information is managed by authenticated users', and 'For official visa information, please contact the relevant government authorities'.",
+      "featureId": "feature-fix-the-australian-visa-status-check-flow-so-that-after-submitting-an-application-id-and-applicant-email-the-page-always-renders-a-visible-outcome-found-result-no-status-found-or-an-error-message-and-never-appears-blank-to-the-user",
+      "featureTitle": "Fix the Australian Visa Status Check flow so that after submitting an Application ID and Applicant Email, the page always renders a visible outcome (found result, “No status found…”, or an error message) and never appears blank to the user.",
       "files": [
         "frontend/src/pages/AustralianVisaCheckPage.tsx"
       ],
@@ -16,7 +16,47 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-15"
+        "REQ-27"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-unauthenticated-users-can-successfully-run-the-australian-visa-status-check-against-the-backend-and-receive-the-built-in-demo-status-for-application-id-4906670766-and-applicant-email-jr321134-gmail-com-including-correct-normalization-behavior-for-trimming-whitespace-and-case-insensitive-email",
+      "featureTitle": "Ensure unauthenticated users can successfully run the Australian Visa Status Check against the backend and receive the built-in demo status for Application ID \"4906670766\" and applicant email \"jr321134@gmail.com\" (including correct normalization behavior for trimming whitespace and case-insensitive email).",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-28"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-user-visible-fallback-for-unexpected-runtime-render-failures-so-the-app-does-not-show-a-completely-blank-screen-display-an-english-error-message-with-a-simple-retry-instruction-and-log-the-underlying-error-to-the-console-for-debugging",
+      "featureTitle": "Add a user-visible fallback for unexpected runtime/render failures so the app does not show a completely blank screen; display an English error message with a simple retry instruction and log the underlying error to the console for debugging.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/errors/AppErrorBoundary.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-29"
       ],
       "confidence": "high"
     }

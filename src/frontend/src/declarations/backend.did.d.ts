@@ -12,10 +12,18 @@ import type { Principal } from '@icp-sdk/core/principal';
 
 export interface ApplicationStatus {
   'status' : string,
+  'applicantName' : string,
   'applicationId' : string,
   'lastUpdated' : Time,
+  'visaType' : string,
   'comments' : [] | [string],
   'applicantEmail' : string,
+  'attachment' : [] | [PDFData],
+}
+export interface PDFData {
+  'contentType' : string,
+  'filename' : string,
+  'bytes' : Uint8Array,
 }
 export type Time = bigint;
 export interface UserProfile { 'name' : string }

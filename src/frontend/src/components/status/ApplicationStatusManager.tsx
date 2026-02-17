@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useGetAllApplicationStatuses,
@@ -42,8 +42,11 @@ import type { ApplicationStatus } from '../../backend';
 type FormData = {
   applicationId: string;
   applicantEmail: string;
+  applicantName: string;
+  visaType: string;
   status: string;
   comments: string;
+  pdfFile: File | null;
 };
 
 export default function ApplicationStatusManager() {
@@ -53,8 +56,11 @@ export default function ApplicationStatusManager() {
   const [formData, setFormData] = useState<FormData>({
     applicationId: '',
     applicantEmail: '',
+    applicantName: '',
+    visaType: '',
     status: '',
     comments: '',
+    pdfFile: null,
   });
 
   const { data: statuses = [], isLoading } = useGetAllApplicationStatuses();
@@ -67,16 +73,22 @@ export default function ApplicationStatusManager() {
       setFormData({
         applicationId: status.applicationId,
         applicantEmail: status.applicantEmail,
+        applicantName: status.applicantName || '',
+        visaType: status.visaType || '',
         status: status.status,
         comments: status.comments || '',
+        pdfFile: null,
       });
     } else {
       setEditingStatus(null);
       setFormData({
         applicationId: '',
         applicantEmail: '',
+        applicantName: '',
+        visaType: '',
         status: '',
         comments: '',
+        pdfFile: null,
       });
     }
     setIsFormOpen(true);
@@ -88,26 +100,63 @@ export default function ApplicationStatusManager() {
     setFormData({
       applicationId: '',
       applicantEmail: '',
+      applicantName: '',
+      visaType: '',
       status: '',
       comments: '',
+      pdfFile: null,
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast.error('Please select a PDF file');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      setFormData({ ...formData, pdfFile: file });
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFormData({ ...formData, pdfFile: null });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.applicationId.trim() || !formData.applicantEmail.trim() || !formData.status.trim()) {
-      toast.error('Please fill in all required fields');
+    if (!formData.applicationId.trim() || !formData.applicantEmail.trim()) {
+      toast.error('Application ID and email are required');
       return;
     }
 
     try {
+      let attachment = editingStatus?.attachment;
+
+      if (formData.pdfFile) {
+        const arrayBuffer = await formData.pdfFile.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        attachment = {
+          filename: formData.pdfFile.name,
+          contentType: formData.pdfFile.type,
+          bytes,
+        };
+      }
+
       const statusData: ApplicationStatus = {
-        applicationId: formData.applicationId.trim(),
-        applicantEmail: formData.applicantEmail.trim(),
-        status: formData.status.trim(),
-        comments: formData.comments.trim() || undefined,
+        applicationId: formData.applicationId,
+        applicantEmail: formData.applicantEmail,
+        applicantName: formData.applicantName,
+        visaType: formData.visaType,
+        status: formData.status,
         lastUpdated: BigInt(Date.now() * 1_000_000),
+        comments: formData.comments || undefined,
+        attachment,
       };
 
       await createOrUpdate.mutateAsync(statusData);
@@ -115,7 +164,7 @@ export default function ApplicationStatusManager() {
       handleCloseForm();
     } catch (error) {
       console.error('Error saving status:', error);
-      toast.error('Failed to save status. Please try again.');
+      toast.error('Failed to save status');
     }
   };
 
@@ -131,148 +180,236 @@ export default function ApplicationStatusManager() {
       setDeleteTarget(null);
     } catch (error) {
       console.error('Error deleting status:', error);
-      toast.error('Failed to delete status. Please try again.');
+      toast.error('Failed to delete status');
     }
   };
 
+  const formatDate = (timestamp: bigint) => {
+    return new Date(Number(timestamp) / 1_000_000).toLocaleDateString('en-AU', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle>Application Status Management</CardTitle>
-            <CardDescription>
-              Create and manage custom visa application statuses for the check system
-            </CardDescription>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Application Status Management</CardTitle>
+              <CardDescription>
+                Manage visa application statuses for public lookup
+              </CardDescription>
+            </div>
+            <Button onClick={() => handleOpenForm()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Status
+            </Button>
           </div>
-          <Button onClick={() => handleOpenForm()} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Status
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : statuses.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No application statuses yet.</p>
-            <p className="text-sm mt-1">Create your first status to get started.</p>
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Application ID</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {statuses.map((status) => (
-                  <TableRow key={`${status.applicationId}-${status.applicantEmail}`}>
-                    <TableCell className="font-medium">{status.applicationId}</TableCell>
-                    <TableCell>{status.applicantEmail}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                        {status.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(Number(status.lastUpdated) / 1_000_000).toLocaleDateString('en-AU')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenForm(status)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteTarget(status)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : statuses.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No application statuses yet</p>
+              <p className="text-sm mt-1">Create one to get started</p>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Application ID</TableHead>
+                    <TableHead>Applicant Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Visa Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead>PDF</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
+                </TableHeader>
+                <TableBody>
+                  {statuses.map((status) => (
+                    <TableRow key={`${status.applicationId}-${status.applicantEmail}`}>
+                      <TableCell className="font-medium">{status.applicationId}</TableCell>
+                      <TableCell>{status.applicantName || '—'}</TableCell>
+                      <TableCell>{status.applicantEmail}</TableCell>
+                      <TableCell>{status.visaType || '—'}</TableCell>
+                      <TableCell>{status.status}</TableCell>
+                      <TableCell>{formatDate(status.lastUpdated)}</TableCell>
+                      <TableCell>
+                        {status.attachment ? (
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenForm(status)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteTarget(status)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>{editingStatus ? 'Edit Status' : 'Add New Status'}</DialogTitle>
-              <DialogDescription>
-                {editingStatus
-                  ? 'Update the status information for this application'
-                  : 'Create a new application status entry'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingStatus ? 'Edit Application Status' : 'Add Application Status'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingStatus
+                ? 'Update the application status details'
+                : 'Create a new application status for public lookup'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="applicationId">Application ID *</Label>
+                <Label htmlFor="applicationId">
+                  Application ID <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="applicationId"
-                  placeholder="e.g., VIS2024-12345"
                   value={formData.applicationId}
-                  onChange={(e) => setFormData({ ...formData, applicationId: e.target.value })}
-                  disabled={!!editingStatus || createOrUpdate.isPending}
+                  onChange={(e) =>
+                    setFormData({ ...formData, applicationId: e.target.value })
+                  }
+                  disabled={!!editingStatus}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="applicantEmail">Applicant Email *</Label>
+                <Label htmlFor="applicantEmail">
+                  Applicant Email <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="applicantEmail"
                   type="email"
-                  placeholder="e.g., applicant@example.com"
                   value={formData.applicantEmail}
-                  onChange={(e) => setFormData({ ...formData, applicantEmail: e.target.value })}
-                  disabled={!!editingStatus || createOrUpdate.isPending}
+                  onChange={(e) =>
+                    setFormData({ ...formData, applicantEmail: e.target.value })
+                  }
+                  disabled={!!editingStatus}
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
-                <Input
-                  id="status"
-                  placeholder="e.g., In Progress, Approved, Under Review"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  disabled={createOrUpdate.isPending}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="comments">Additional Comments</Label>
-                <Textarea
-                  id="comments"
-                  placeholder="Optional notes or additional information"
-                  value={formData.comments}
-                  onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-                  disabled={createOrUpdate.isPending}
-                  rows={3}
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="applicantName">Applicant Name</Label>
+                <Input
+                  id="applicantName"
+                  value={formData.applicantName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, applicantName: e.target.value })
+                  }
+                  placeholder="e.g., John Smith"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="visaType">Visa Type</Label>
+                <Input
+                  id="visaType"
+                  value={formData.visaType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, visaType: e.target.value })
+                  }
+                  placeholder="e.g., Work Visa"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">
+                Status <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                placeholder="e.g., Approved, Pending, Rejected"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="comments">Comments</Label>
+              <Textarea
+                id="comments"
+                value={formData.comments}
+                onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                placeholder="Additional information or notes"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pdfFile">
+                PDF Attachment {editingStatus?.attachment && '(Replace existing)'}
+              </Label>
+              {formData.pdfFile ? (
+                <div className="flex items-center gap-2 p-3 border rounded-md">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{formData.pdfFile.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRemoveFile}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : editingStatus?.attachment ? (
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{editingStatus.attachment.filename}</span>
+                  <span className="text-xs text-muted-foreground">(Current)</span>
+                </div>
+              ) : null}
+              <Input
+                id="pdfFile"
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">
+                PDF files only, max 5MB
+              </p>
+            </div>
+
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseForm} disabled={createOrUpdate.isPending}>
+              <Button type="button" variant="outline" onClick={handleCloseForm}>
                 Cancel
               </Button>
               <Button type="submit" disabled={createOrUpdate.isPending}>
@@ -281,8 +418,10 @@ export default function ApplicationStatusManager() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
+                ) : editingStatus ? (
+                  'Update Status'
                 ) : (
-                  'Save'
+                  'Create Status'
                 )}
               </Button>
             </DialogFooter>
@@ -296,13 +435,17 @@ export default function ApplicationStatusManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Application Status</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the status for application{' '}
-              <span className="font-semibold">{deleteTarget?.applicationId}</span>? This action cannot be undone.
+              Are you sure you want to delete the status for Application ID{' '}
+              <strong>{deleteTarget?.applicationId}</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteStatus.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteStatus.isPending}>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteStatus.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               {deleteStatus.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -315,6 +458,6 @@ export default function ApplicationStatusManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }

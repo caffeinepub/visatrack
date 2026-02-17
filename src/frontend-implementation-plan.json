@@ -1,21 +1,64 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "VisaTrack: Remove Important Information disclaimer from Australian Visa Status Check page",
+  "title": "VisaTrack — Prevent blank outcomes on Australian Visa Status Check",
   "requirements": [
     {
-      "id": "REQ-15",
-      "summary": "Remove the 'Important Information' disclaimer card and its bullet text from the Australian Visa Status Check page while keeping the rest of the page behavior unchanged.",
+      "id": "REQ-27",
+      "summary": "Ensure the Australian Visa Status Check always renders a visible outcome after submit (found, no status found, or error) and never appears blank.",
       "acceptanceCriteria": [
-        "On the 'Australian Visa Status Check' page, the 'Important Information' card/section is no longer rendered.",
-        "A text search of the rendered 'Australian Visa Status Check' page does not show any of the removed disclaimer bullet lines.",
-        "All other functionality on the page (form submission, results display, reset behavior) remains unchanged."
+        "On the Australian Visa Status Check page, submitting the form always results in one of the following becoming visible: (a) “Application Found” result UI, (b) the existing “No status found for that Application ID and email…” message, or (c) the existing error message (“Unable to check application status. Please try again later.”).",
+        "If the backend returns no match (Motoko optional null/None/[]), the UI shows the “No status found…” message.",
+        "If the request fails (network error, canister error, or thrown exception), the UI shows the existing error message and does not remain blank.",
+        "The results card visibility logic is correct even when the mutation resolves to null, resolves to a status object, or rejects."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "operation": "modify",
-          "description": "Delete the JSX block that renders the 'Important Information' Card (including its title and the three disclaimer bullet lines) so none of the specified disclaimer text appears anywhere on this page; do not alter the form submission, results rendering, or reset logic."
+          "description": "Fix results visibility state so the results area becomes visible immediately upon submit (show a processing state while pending), and always transitions to exactly one visible outcome after the mutation settles. Ensure a resolved-but-undefined/empty success is treated as a no-match (null) to avoid blank rendering. Keep existing user-facing copy unchanged except for state/visibility behavior."
+        }
+      ]
+    },
+    {
+      "id": "REQ-28",
+      "summary": "Allow unauthenticated users to run the Australian Visa Status Check successfully and display the demo status for the specified Application ID/email with correct normalization.",
+      "acceptanceCriteria": [
+        "When not signed in, checking Application ID \"4906670766\" with email \"jr321134@gmail.com\" returns and displays an “Application Found” result with applicant name “Rojee Sharma” and status “Work visa approved”.",
+        "The lookup works when the user includes leading/trailing spaces in Application ID and/or email, and when the email casing differs (e.g., \"JR321134@GMAIL.COM\").",
+        "Unauthenticated callers do not trigger an authorization trap for the check operation, and they still cannot read any user-created application statuses via the public check endpoint (only the built-in demo status is available unauthenticated)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Prevent unauthenticated sessions from invoking authenticated-only profile queries that may error/trap and interfere with the public visa-check flow (e.g., disable getCallerUserProfile querying when not signed in). Keep visa-check mutation enabled for anonymous actors and continue to normalize applicationId/email before calling the backend."
+        },
+        {
+          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "operation": "modify",
+          "description": "Ensure submission uses the same normalization expectations as the backend lookup (trim whitespace for Application ID; trim + lowercase email) and that the found/no-found rendering works for unauthenticated users without requiring login."
+        }
+      ]
+    },
+    {
+      "id": "REQ-29",
+      "summary": "Add a user-visible runtime/render fallback so unexpected errors do not produce a blank screen; log the underlying error for debugging.",
+      "acceptanceCriteria": [
+        "If a runtime error occurs during render of the Australian Visa Status Check page (or its layout), a fallback UI is shown instead of a blank page.",
+        "The fallback UI contains a clear English message indicating something went wrong and instructs the user to refresh/retry.",
+        "The underlying error is logged to the browser console to aid debugging, without changing existing user-facing copy beyond the new fallback message."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/errors/AppErrorBoundary.tsx",
+          "operation": "create",
+          "description": "Create a React error boundary component that catches render/runtime errors, logs the full error details to console, and shows a minimal English fallback message with a simple refresh/retry instruction."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wrap the Australian Visa Status Check route rendering (and its layout tree) with the new AppErrorBoundary so a fallback UI is shown instead of a blank screen if an unexpected render/runtime error occurs."
         }
       ]
     }

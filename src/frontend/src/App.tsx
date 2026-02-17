@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import AustralianVisaCheckPage from './pages/AustralianVisaCheckPage';
 import ProfileSetupModal from './components/profile/ProfileSetupModal';
 import { Toaster } from '@/components/ui/sonner';
+import { AppErrorBoundary } from './components/errors/AppErrorBoundary';
 
 export default function App() {
   const { identity } = useInternetIdentity();
@@ -18,16 +19,16 @@ export default function App() {
   // Visa check page is accessible to everyone
   if (route === 'visa-check') {
     return (
-      <>
+      <AppErrorBoundary>
         <AustralianVisaCheckPage />
         <Toaster />
-      </>
+      </AppErrorBoundary>
     );
   }
 
   // Home route - show landing, profile setup, or dashboard
   return (
-    <>
+    <AppErrorBoundary>
       {!isAuthenticated ? (
         <LandingPage />
       ) : showProfileSetup ? (
@@ -36,6 +37,6 @@ export default function App() {
         <DashboardPage />
       )}
       <Toaster />
-    </>
+    </AppErrorBoundary>
   );
 }

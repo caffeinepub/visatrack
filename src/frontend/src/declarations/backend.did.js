@@ -14,12 +14,20 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const Time = IDL.Int;
+export const PDFData = IDL.Record({
+  'contentType' : IDL.Text,
+  'filename' : IDL.Text,
+  'bytes' : IDL.Vec(IDL.Nat8),
+});
 export const ApplicationStatus = IDL.Record({
   'status' : IDL.Text,
+  'applicantName' : IDL.Text,
   'applicationId' : IDL.Text,
   'lastUpdated' : Time,
+  'visaType' : IDL.Text,
   'comments' : IDL.Opt(IDL.Text),
   'applicantEmail' : IDL.Text,
+  'attachment' : IDL.Opt(PDFData),
 });
 export const VisaRecord = IDL.Record({
   'id' : IDL.Text,
@@ -78,12 +86,20 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const Time = IDL.Int;
+  const PDFData = IDL.Record({
+    'contentType' : IDL.Text,
+    'filename' : IDL.Text,
+    'bytes' : IDL.Vec(IDL.Nat8),
+  });
   const ApplicationStatus = IDL.Record({
     'status' : IDL.Text,
+    'applicantName' : IDL.Text,
     'applicationId' : IDL.Text,
     'lastUpdated' : Time,
+    'visaType' : IDL.Text,
     'comments' : IDL.Opt(IDL.Text),
     'applicantEmail' : IDL.Text,
+    'attachment' : IDL.Opt(PDFData),
   });
   const VisaRecord = IDL.Record({
     'id' : IDL.Text,

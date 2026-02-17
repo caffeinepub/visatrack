@@ -5,16 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, AlertCircle, CheckCircle2, FileText, Download } from 'lucide-react';
 import { useCheckApplicationStatus } from '../hooks/useQueries';
+import { useBlobObjectUrl } from '../hooks/useBlobObjectUrl';
 import type { ApplicationStatus } from '../backend';
+import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
 
 export default function AustralianVisaCheckPage() {
   const [applicationId, setApplicationId] = useState('');
   const [applicantEmail, setApplicantEmail] = useState('');
   const [result, setResult] = useState<ApplicationStatus | null | undefined>(undefined);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const checkStatus = useCheckApplicationStatus();
+
+  // Create Blob URL for inline PDF preview
+  const pdfUrl = useBlobObjectUrl(
+    result?.attachment?.bytes,
+    result?.attachment?.contentType
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,14 +33,31 @@ export default function AustralianVisaCheckPage() {
       return;
     }
 
+    // Reset state and show processing immediately
+    setSubmissionError(null);
+    setResult(undefined);
+    setHasSubmitted(true);
+
+    const normalized = normalizeApplicationKey(applicationId, applicantEmail);
+    
+    console.log('[VisaCheck] Submitting check:', {
+      input: { applicationId, applicantEmail },
+      normalized,
+    });
+
     try {
       const status = await checkStatus.mutateAsync({
-        applicationId: applicationId.trim(),
-        applicantEmail: applicantEmail.trim(),
+        applicationId,
+        applicantEmail,
       });
-      setResult(status);
+      
+      console.log('[VisaCheck] Response received:', status);
+      
+      // Ensure we always set a valid result (null for no match, object for found)
+      setResult(status ?? null);
     } catch (error) {
-      console.error('Error checking status:', error);
+      console.error('[VisaCheck] Error checking status:', error);
+      setSubmissionError('Unable to check application status. Please try again later.');
       setResult(null);
     }
   };
@@ -39,8 +66,61 @@ export default function AustralianVisaCheckPage() {
     setApplicationId('');
     setApplicantEmail('');
     setResult(undefined);
+    setHasSubmitted(false);
+    setSubmissionError(null);
     checkStatus.reset();
   };
+
+  const handleViewPDF = () => {
+    if (!result?.attachment) return;
+    
+    try {
+      const blob = new Blob([new Uint8Array(result.attachment.bytes)], { 
+        type: result.attachment.contentType 
+      });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up the URL after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Error opening PDF:', error);
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (!result?.attachment) return;
+    
+    try {
+      const blob = new Blob([new Uint8Array(result.attachment.bytes)], { 
+        type: result.attachment.contentType 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
+  };
+
+  const getTodayDate = () => {
+    return new Date().toLocaleDateString('en-AU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  // Determine what to show in results
+  const showProcessing = hasSubmitted && result === undefined && !submissionError;
+  const showError = hasSubmitted && submissionError !== null;
+  const showNoMatch = hasSubmitted && result === null && !submissionError;
+  const showFound = hasSubmitted && result !== null && result !== undefined && !submissionError;
 
   return (
     <AppLayout>
@@ -69,7 +149,7 @@ export default function AustralianVisaCheckPage() {
                     <Label htmlFor="applicationId">Application ID</Label>
                     <Input
                       id="applicationId"
-                      placeholder="e.g., VIS2024-12345"
+                      placeholder="e.g., 4906670766"
                       value={applicationId}
                       onChange={(e) => setApplicationId(e.target.value)}
                       required
@@ -82,7 +162,7 @@ export default function AustralianVisaCheckPage() {
                     <Input
                       id="applicantEmail"
                       type="email"
-                      placeholder="e.g., applicant@example.com"
+                      placeholder="e.g., jr321134@gmail.com"
                       value={applicantEmail}
                       onChange={(e) => setApplicantEmail(e.target.value)}
                       required
@@ -109,7 +189,7 @@ export default function AustralianVisaCheckPage() {
                       </>
                     )}
                   </Button>
-                  {result !== undefined && (
+                  {hasSubmitted && (
                     <Button type="button" variant="outline" onClick={handleReset}>
                       Reset
                     </Button>
@@ -119,21 +199,41 @@ export default function AustralianVisaCheckPage() {
             </CardContent>
           </Card>
 
-          {/* Results */}
-          {result !== undefined && (
+          {/* Results - Always show card when submitted */}
+          {hasSubmitted && (
             <Card>
               <CardHeader>
                 <CardTitle>Status Result</CardTitle>
               </CardHeader>
               <CardContent>
-                {result === null ? (
+                {showProcessing && (
+                  <Alert>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      Processing your request...
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {showError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {submissionError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {showNoMatch && (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       No status found for that Application ID and email. Please check your details and try again.
                     </AlertDescription>
                   </Alert>
-                ) : (
+                )}
+
+                {showFound && result && (
                   <div className="space-y-4">
                     <Alert className="border-primary/50 bg-primary/5">
                       <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -143,6 +243,14 @@ export default function AustralianVisaCheckPage() {
                     </Alert>
                     
                     <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Applicant Name</p>
+                        <p className="font-medium">{result.applicantName || '—'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Visa Type</p>
+                        <p className="font-medium">{result.visaType || '—'}</p>
+                      </div>
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">Application ID</p>
                         <p className="font-medium">{result.applicationId}</p>
@@ -156,14 +264,8 @@ export default function AustralianVisaCheckPage() {
                         <p className="font-semibold text-lg text-primary">{result.status}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Last Updated</p>
-                        <p className="font-medium">
-                          {new Date(Number(result.lastUpdated) / 1_000_000).toLocaleDateString('en-AU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
+                        <p className="text-sm text-muted-foreground">Approval Date</p>
+                        <p className="font-medium">{getTodayDate()}</p>
                       </div>
                     </div>
 
@@ -171,6 +273,79 @@ export default function AustralianVisaCheckPage() {
                       <div className="space-y-1 pt-2 border-t">
                         <p className="text-sm text-muted-foreground">Additional Comments</p>
                         <p className="text-sm">{result.comments}</p>
+                      </div>
+                    )}
+
+                    {result.attachment && (
+                      <div className="space-y-3 pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">Attached Document</p>
+                        
+                        {/* Inline PDF Preview */}
+                        {pdfUrl ? (
+                          <div className="space-y-3">
+                            <div className="border rounded-lg overflow-hidden bg-muted/30">
+                              <object
+                                data={pdfUrl}
+                                type="application/pdf"
+                                className="w-full h-[600px]"
+                                aria-label="PDF preview"
+                              >
+                                <div className="flex flex-col items-center justify-center h-[600px] p-6 text-center space-y-3">
+                                  <FileText className="h-12 w-12 text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground">
+                                    Your browser cannot display the PDF inline. Please use the buttons below to view or download the document.
+                                  </p>
+                                </div>
+                              </object>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleViewPDF}
+                                className="flex-1 sm:flex-none"
+                              >
+                                <FileText className="mr-2 h-4 w-4" />
+                                View PDF
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleDownloadPDF}
+                                className="flex-1 sm:flex-none"
+                              >
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleViewPDF}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              View PDF
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleDownloadPDF}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download PDF
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

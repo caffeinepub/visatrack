@@ -1,9 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useInternetIdentity } from './useInternetIdentity';
 import type { VisaRecord, UserProfile, ApplicationStatus } from '../backend';
+import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
+import { normalizeApplicationStatusResult } from '../utils/getApplicationStatusResult';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
 
   const query = useQuery<UserProfile | null>({
     queryKey: ['currentUserProfile'],
@@ -11,7 +15,7 @@ export function useGetCallerUserProfile() {
       if (!actor) throw new Error('Actor not available');
       return actor.getCallerUserProfile();
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && !actorFetching && !!identity,
     retry: false,
   });
 
@@ -118,7 +122,9 @@ export function useCheckApplicationStatus() {
   return useMutation({
     mutationFn: async ({ applicationId, applicantEmail }: { applicationId: string; applicantEmail: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getApplicationStatus(applicationId, applicantEmail);
+      const normalized = normalizeApplicationKey(applicationId, applicantEmail);
+      const rawResponse = await actor.getApplicationStatus(normalized.applicationId, normalized.applicantEmail);
+      return normalizeApplicationStatusResult(rawResponse);
     },
   });
 }
@@ -143,7 +149,13 @@ export function useCreateOrUpdateApplicationStatus() {
   return useMutation({
     mutationFn: async (status: ApplicationStatus) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createOrUpdateApplicationStatus(status);
+      const normalized = normalizeApplicationKey(status.applicationId, status.applicantEmail);
+      const normalizedStatus: ApplicationStatus = {
+        ...status,
+        applicationId: normalized.applicationId,
+        applicantEmail: normalized.applicantEmail,
+      };
+      return actor.createOrUpdateApplicationStatus(normalizedStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicationStatuses'] });
@@ -158,7 +170,8 @@ export function useDeleteApplicationStatus() {
   return useMutation({
     mutationFn: async ({ applicationId, applicantEmail }: { applicationId: string; applicantEmail: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.deleteApplicationStatus(applicationId, applicantEmail);
+      const normalized = normalizeApplicationKey(applicationId, applicantEmail);
+      return actor.deleteApplicationStatus(normalized.applicationId, normalized.applicantEmail);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicationStatuses'] });

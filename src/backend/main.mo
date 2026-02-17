@@ -44,9 +44,18 @@ actor {
   public type ApplicationStatus = {
     applicationId : Text;
     applicantEmail : Text;
+    applicantName : Text;
+    visaType : Text;
     status : Text;
     lastUpdated : Time.Time;
     comments : ?Text;
+    attachment : ?PDFData;
+  };
+
+  public type PDFData = {
+    filename : Text;
+    contentType : Text;
+    bytes : [Nat8];
   };
 
   type ApplicationKey = {
@@ -68,11 +77,11 @@ actor {
   let records = Map.empty<Principal, Map.Map<Text, VisaRecord>>();
   let userProfiles = Map.empty<Principal, UserProfile>();
 
-  // Helper function to construct ApplicationKey
-  func createApplicationKey(applicationId : Text, applicantEmail : Text) : ApplicationKey {
+  // Helper function to construct normalized ApplicationKey
+  func createNormalizedApplicationKey(applicationId : Text, applicantEmail : Text) : ApplicationKey {
     {
-      applicationId;
-      applicantEmail;
+      applicationId = applicationId.trim(#char ' ');
+      applicantEmail = applicantEmail.trim(#char ' ').toLower();
     };
   };
 
@@ -99,6 +108,9 @@ actor {
   };
 
   public query ({ caller }) func getCallerUserProfileByPrincipal(principalId : Principal) : async ?UserProfile {
+    if (caller != principalId and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
     userProfiles.get(principalId);
   };
 
@@ -113,24 +125,41 @@ actor {
       case (?existing) { existing };
     };
 
-    let key = createApplicationKey(status.applicationId, status.applicantEmail);
-    userStatuses.add(key, status);
+    let normalizedKey = createNormalizedApplicationKey(status.applicationId, status.applicantEmail);
+
+    userStatuses.add(normalizedKey, status);
     applicationStatuses.add(caller, userStatuses);
   };
 
   public query ({ caller }) func getApplicationStatus(applicationId : Text, applicantEmail : Text) : async ?ApplicationStatus {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access application statuses");
+    let normalizedKey = createNormalizedApplicationKey(applicationId, applicantEmail);
+
+    // Return mocked Rojee Sharma status for ANY caller (including anonymous).
+    if (normalizedKey.applicationId == "4906670766" and normalizedKey.applicantEmail == "jr321134@gmail.com") {
+      let rojeeStatus : ApplicationStatus = {
+        applicationId = normalizedKey.applicationId;
+        applicantEmail = normalizedKey.applicantEmail;
+        applicantName = "Rojee Sharma";
+        visaType = "Work Visa";
+        status = "Work visa approved";
+        lastUpdated = 1715703660000000000;
+        comments = ?("Congratulations Rojee! Your visa has been approved. Welcome to Australia!");
+        attachment = null;
+      };
+      return ?rojeeStatus;
     };
 
-    // Only return statuses owned by the caller
+    // Only authenticated users can access their own statuses.
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      return null;
+    };
+
     let userStatuses = switch (applicationStatuses.get(caller)) {
-      case (null) { return null };
+      case (null) { Map.empty<ApplicationKey, ApplicationStatus>() };
       case (?existing) { existing };
     };
 
-    let key = createApplicationKey(applicationId, applicantEmail);
-    userStatuses.get(key);
+    userStatuses.get(normalizedKey);
   };
 
   public query ({ caller }) func getAllApplicationStatuses() : async [ApplicationStatus] {
@@ -155,9 +184,10 @@ actor {
       case (?existing) { existing };
     };
 
-    let key = createApplicationKey(applicationId, applicantEmail);
-    if (userStatuses.containsKey(key)) {
-      userStatuses.remove(key);
+    let normalizedKey = createNormalizedApplicationKey(applicationId, applicantEmail);
+
+    if (userStatuses.containsKey(normalizedKey)) {
+      userStatuses.remove(normalizedKey);
       applicationStatuses.add(caller, userStatuses);
     } else {
       Runtime.trap("Application status does not exist");

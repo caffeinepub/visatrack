@@ -1,29 +1,56 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T06:14:32.815Z",
-  "summary": "The diff shows edits to AustralianVisaCheckPage.tsx and project_state.json, but the page file is truncated before any potential 'Important Information' block, so removal of the disclaimer text cannot be confirmed from the provided evidence. An unrequested update to project_state.json is present.",
+  "generatedAt": "2026-02-17T08:12:32.457Z",
+  "summary": "Frontend changes add an App-level error boundary and update the Australian Visa Status Check page state handling to avoid blank outcomes after submission. However, there is no visible backend change to enable unauthenticated demo lookups, and the new status-check mutation still fails when no actor is available. Several unrelated UI/product changes (e.g., footer simplification, PDF preview, dashboard status manager) appear in the diff summary but were not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-15",
-      "requirement": "Remove the 'Important Information' disclaimer block from the Australian Visa Status Check screen so that none of the following text appears anywhere on that page: 'Important Information', 'This is a mock visa status check system for demonstration purposes only', 'Status information is managed by authenticated users', and 'For official visa information, please contact the relevant government authorities'.",
-      "reason": "AustralianVisaCheckPage.tsx is truncated in the diff summary before any disclaimer/secondary sections would typically appear, so there is no visible evidence that the 'Important Information' card/section and its bullet text were actually removed.",
+      "id": "REQ-28",
+      "requirement": "Ensure unauthenticated users can successfully run the Australian Visa Status Check against the backend and receive the built-in demo status for Application ID \"4906670766\" and applicant email \"jr321134@gmail.com\" (with trimming and case-insensitive email), without exposing user-created statuses via the public endpoint.",
+      "reason": "No backend/main.mo changes are shown to (a) allow unauthenticated access without an authorization trap, (b) return the built-in demo status for the specified inputs, or (c) restrict unauthenticated callers to demo-only results. Additionally, the frontend mutation currently throws when no actor is available, which would prevent unauthenticated checks if the actor is not created for anonymous users.",
       "evidence": [
-        "frontend/src/pages/AustralianVisaCheckPage.tsx (truncated)"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/hooks/useQueries.ts (useCheckApplicationStatus: `if (!actor) throw new Error('Actor not available');`)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Updated project metadata/state (schema/projectStateVersion/summary/existing_features listing) in project_state.json.",
-      "reason": "The BuildRequest only asks to remove a disclaimer block from the Australian Visa Status Check page and does not request updating project_state.json.",
+      "description": "Added an application-wide error boundary UI with a refresh button and additional copy (including 'contact support').",
+      "reason": "REQ-29 asks for a minimal fallback message for unexpected runtime failures with retry instruction and console logging; the implemented UI adds extra elements/copy beyond the minimal requirement.",
       "evidence": [
-        "project_state.json (truncated)"
+        "frontend/src/components/errors/AppErrorBoundary.tsx"
+      ]
+    },
+    {
+      "description": "Added inline PDF preview and PDF view/download handling on the Australian Visa Status Check results.",
+      "reason": "The BuildRequest does not request PDF preview/download functionality; it only requests fixing blank outcomes and adding a runtime error fallback.",
+      "evidence": [
+        "frontend/src/pages/AustralianVisaCheckPage.tsx",
+        "frontend-file-summaries.txt (mentions inline PDF preview and Blob URL cleanup)"
+      ]
+    },
+    {
+      "description": "Introduced/mentioned new authenticated dashboard functionality for managing application status entries (ApplicationStatusManager).",
+      "reason": "Not requested by REQ-27/28/29 and outside the stated scope (fix blank outcome + unauth demo check + error fallback).",
+      "evidence": [
+        "frontend-file-summaries.txt (mentions `frontend/src/components/status/ApplicationStatusManager.tsx` and DashboardPage updates)"
+      ]
+    },
+    {
+      "description": "Modified footer content (removed disclaimer/official links, added attribution with UTM tracking).",
+      "reason": "Not part of the requested fix for the Visa Status Check blank outcome or error boundary; also conflicts with the request to avoid changing existing product copy on the Visa Status Check page beyond a minimal fallback message.",
+      "evidence": [
+        "frontend-file-summaries.txt (mentions `frontend/src/components/layout/Footer.tsx` changes)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.66,
   "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/errors/AppErrorBoundary.tsx",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AustralianVisaCheckPage.tsx",
     "project_state.json"
   ]

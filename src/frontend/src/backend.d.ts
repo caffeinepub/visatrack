@@ -18,12 +18,20 @@ export interface VisaRecord {
     grantReference?: string;
 }
 export type Time = bigint;
+export interface PDFData {
+    contentType: string;
+    filename: string;
+    bytes: Uint8Array;
+}
 export interface ApplicationStatus {
     status: string;
+    applicantName: string;
     applicationId: string;
     lastUpdated: Time;
+    visaType: string;
     comments?: string;
     applicantEmail: string;
+    attachment?: PDFData;
 }
 export interface UserProfile {
     name: string;
