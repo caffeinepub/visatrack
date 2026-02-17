@@ -1,0 +1,19 @@
+{
+  "frontend/src/App.tsx": "Root application component with hash-based routing support that conditionally renders LandingPage, AustralianVisaCheckPage, ProfileSetupModal, or DashboardPage based on route and authentication state.",
+  "frontend/src/hooks/useQueries.ts": "Custom React Query hooks for all backend operations including user profile management, visa record CRUD, upcoming reminders, and new application status management (check, list, create/update, delete) with proper cache invalidation.",
+  "frontend/src/pages/LandingPage.tsx": "Public landing page with hero section, feature cards, and navigation buttons for both login and direct access to the Australian Visa Check page.",
+  "frontend/src/pages/DashboardPage.tsx": "Authenticated dashboard with tabbed interface for managing personal visa records and application status entries, including the new ApplicationStatusManager component.",
+  "frontend/src/components/layout/AppLayout.tsx": "Shared layout wrapper component that provides consistent header, main content area, and footer structure across all pages.",
+  "frontend/src/components/layout/Header.tsx": "Application header with logo, hash-based navigation to Visa Check page, user profile display (when authenticated), and login/logout button.",
+  "frontend/src/components/layout/Footer.tsx": "Simplified footer component with copyright notice and Caffeine.ai attribution with UTM tracking, no longer containing disclaimer or official resource links.",
+  "frontend/src/components/profile/ProfileSetupModal.tsx": "Modal dialog for first-time user profile setup that prompts authenticated users to enter their name before accessing the dashboard.",
+  "frontend/src/components/visa/VisaRecordList.tsx": "Displays all user visa records in a responsive card grid with edit/delete actions, expiry status badges, and empty state messaging.",
+  "frontend/src/components/visa/VisaRecordForm.tsx": "Form dialog for creating and editing visa records with validation, including visa label, grant reference, expiry date, conditions, and integrated reminder management.",
+  "frontend/src/components/reminders/ReminderManager.tsx": "Embedded component for managing reminder dates with preset quick-add buttons (30/14/7 days before expiry) and custom date input.",
+  "frontend/src/components/reminders/UpcomingReminders.tsx": "Dashboard widget that displays upcoming and overdue reminders within a 30-day window, sorted by date with visual indicators for urgency.",
+  "frontend/src/index.css": "Global styles with OKLCH-based color system featuring a neutral palette with warm undertones, deep navy primary color, and comprehensive light/dark mode support.",
+  "frontend/tailwind.config.js": "Tailwind configuration with extended color tokens, Inter font family, custom shadows, and animation utilities for the design system.",
+  "frontend/src/hooks/useHashRoute.ts": "Custom React hook for hash-based routing that manages navigation between 'home' and 'visa-check' routes without requiring provider setup.",
+  "frontend/src/pages/AustralianVisaCheckPage.tsx": "Public visa status check page that allows users to enter Application ID and email to query custom status entries, displaying results or a user-friendly \"not found\" message with proper loading states.",
+  "frontend/src/components/status/ApplicationStatusManager.tsx": "Authenticated component for managing application status entries with create/edit/delete functionality, confirmation dialogs, table display, and toast notifications for user feedback."
+}

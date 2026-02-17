@@ -1,0 +1,97 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-17T06:08:57.210Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 5,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-10",
+        "summary": "Add backend support for a mock Australian visa application status registry keyed by (Application ID, Email) where authenticated users can create, update, list, and delete custom status entries (no integration with any external/government systems).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-11",
+        "summary": "Add a backend query method that allows checking the stored custom status by providing Application ID and Email, returning the matching entry (or null if none exists).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-12",
+        "summary": "Create a new frontend page/screen labeled \"Australian Visa Check\" that lets a user enter Application ID and Email, submit, and view the returned custom status (or a clear \"No status found\" message).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-13",
+        "summary": "Provide an authenticated management UI for custom statuses where signed-in users can create, edit, and delete status entries for (Application ID, Email) and set a user-defined status text.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/DashboardPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/DashboardPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-14",
+        "summary": "Add navigation so users can reach the \"Australian Visa Check\" screen from the existing app UI without editing immutable hook/provider files.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useHashRoute.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/components/layout/Header.tsx",
+          "frontend/src/pages/LandingPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useHashRoute.ts",
+          "frontend/src/App.tsx",
+          "frontend/src/components/layout/Header.tsx",
+          "frontend/src/pages/LandingPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/layout/Header.tsx",
+    "frontend/src/components/status/ApplicationStatusManager.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useHashRoute.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/pages/LandingPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 7,
+  "summary": "Expand VisaTrack beyond personal visa record tracking to also include a mock 'Australian Visa Check' screen where users can enter Application ID + email and view a custom status (not connected to government systems).",
+  "architectural_notes": [
+    "User requested removing the non-government disclaimer and official resource links from the website UI; review placement/content strategy accordingly.",
+    "Add a mock 'Visa Check' module with local/admin-defined status mapping keyed by Application ID (and optionally email) with explicit non-integration messaging (no government backend)."
+  ],
+  "known_issues": [
+    "Compliance/UX risk: removing the non-government disclaimer and official links could increase perceived affiliation with government services; confirm legal/compliance requirements before shipping.",
+    "Compliance/UX risk: implementing an 'Australian Visa Check' status screen (even as a mock) may increase perceived government affiliation; ensure clear disclosure and avoid implying access to official status systems."
+  ],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-add-internet-identity-sign-in-and-require-authentication-for-any-create-read-update-delete-actions-on-stored-visa-records",
+      "title": "Add Internet Identity sign-in and require authentication for any create/read/update/delete actions on stored visa records.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-dashboard-ui-that-lets-authenticated-users-add-view-edit-and-delete-their-saved-visa-records-with-a-clear-form-based-workflow-and-validation-required-fields-date-validation",
+      "title": "Create a dashboard UI that lets authenticated users add, view, edit, and delete their saved visa records with a clear, form-based workflow and validation (required fields, date validation).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-reminder-management-for-each-visa-record-allow-users-to-set-one-or-more-reminder-dates-e-g-30-14-7-days-before-expiry-or-custom-date-and-show-an-in-app-upcoming-reminders-section-highlighting-reminders-due-soon-overdue",
+      "title": "Add reminder management for each visa record: allow users to set one or more reminder dates (e.g., 30/14/7 days before expiry or custom date) and show an in-app ‘Upcoming reminders’ section highlighting reminders due soon/overdue.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-include-a-clear-non-government-disclaimer-and-provide-official-links-for-users-to-check-status-via-official-portals-vevo-and-immiaccount-without-attempting-to-replicate-or-impersonate-government-services",
+      "title": "Include a clear non-government disclaimer and provide official links for users to check status via official portals (VEVO and ImmiAccount) without attempting to replicate or impersonate government services.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-establish-a-coherent-visual-theme-colors-typography-spacing-components-appropriate-for-a-neutral-personal-tracker-app-and-apply-it-consistently-across-landing-auth-dashboard-and-forms",
+      "title": "Establish a coherent visual theme (colors, typography, spacing, components) appropriate for a neutral personal tracker app, and apply it consistently across landing, auth, dashboard, and forms.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-generate-and-include-simple-custom-static-visuals-for-the-app-logo-and-a-minimal-hero-illustration-and-render-them-from-frontend-static-assets",
+      "title": "Generate and include simple custom static visuals for the app (logo and a minimal hero illustration) and render them from frontend static assets.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-non-government-disclaimer-block-and-the-official-resources-vevo-and-immiaccount-links-section-from-the-site-footer-ui-so-that-none-of-that-content-appears-anywhere-in-the-footer",
+      "title": "Remove the non-government disclaimer block and the 'Official Resources' (VEVO and ImmiAccount) links section from the site footer UI so that none of that content appears anywhere in the footer.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-official-government-resources-section-from-the-landing-page-including-any-buttons-links-to-vevo-and-immiaccount-and-remove-the-hero-check-official-status-external-link-button",
+      "title": "Remove the 'Official Government Resources' section from the landing page, including any buttons/links to VEVO and ImmiAccount, and remove the hero 'Check Official Status' external link button.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-frontend-page-screen-labeled-australian-visa-check-that-lets-a-user-enter-application-id-and-email-submit-and-view-the-returned-custom-status-or-a-clear-no-status-found-message",
+      "title": "Create a new frontend page/screen labeled \"Australian Visa Check\" that lets a user enter Application ID and Email, submit, and view the returned custom status (or a clear \"No status found\" message).",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-provide-an-authenticated-management-ui-for-custom-statuses-where-signed-in-users-can-create-edit-and-delete-status-entries-for-application-id-email-and-set-a-user-defined-status-text",
+      "title": "Provide an authenticated management UI for custom statuses where signed-in users can create, edit, and delete status entries for (Application ID, Email) and set a user-defined status text.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-navigation-so-users-can-reach-the-australian-visa-check-screen-from-the-existing-app-ui-without-editing-immutable-hook-provider-files",
+      "title": "Add navigation so users can reach the \"Australian Visa Check\" screen from the existing app UI without editing immutable hook/provider files.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create a non-government visa helper app for users to store their own visa details (expiry date, notes) and manage reminders.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Implement backend data model and APIs to store a user’s visa records including: visa label/name, visa grant number/reference (optional), visa expiry date, conditions/notes (free text), and created/updated timestamps.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Remove the non-government disclaimer and the 'Official Resources' links (VEVO, ImmiAccount) section from the website UI.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add an 'Australian Visa Check' screen that accepts Application ID and email and shows a user-defined custom status per Application ID (mock/non-government; no real government integration).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add backend support for a mock Australian visa application status registry keyed by (Application ID, Email) where authenticated users can create, update, list, and delete custom status entries (no integration with any external/government systems).",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Add a backend query method that allows checking the stored custom status by providing Application ID and Email, returning the matching entry (or null if none exists).",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "VisaTrack",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

@@ -1,0 +1,68 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-create-a-new-frontend-page-screen-labeled-australian-visa-check-that-lets-a-user-enter-application-id-and-email-submit-and-view-the-returned-custom-status-or-a-clear-no-status-found-message",
+      "featureTitle": "Create a new frontend page/screen labeled \"Australian Visa Check\" that lets a user enter Application ID and Email, submit, and view the returned custom status (or a clear \"No status found\" message).",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-provide-an-authenticated-management-ui-for-custom-statuses-where-signed-in-users-can-create-edit-and-delete-status-entries-for-application-id-email-and-set-a-user-defined-status-text",
+      "featureTitle": "Provide an authenticated management UI for custom statuses where signed-in users can create, edit, and delete status entries for (Application ID, Email) and set a user-defined status text.",
+      "files": [
+        "frontend/src/components/status/ApplicationStatusManager.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-13"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-navigation-so-users-can-reach-the-australian-visa-check-screen-from-the-existing-app-ui-without-editing-immutable-hook-provider-files",
+      "featureTitle": "Add navigation so users can reach the \"Australian Visa Check\" screen from the existing app UI without editing immutable hook/provider files.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/Header.tsx",
+        "frontend/src/hooks/useHashRoute.ts",
+        "frontend/src/pages/LandingPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-14"
+      ],
+      "confidence": "high"
+    }
+  ]
+}
