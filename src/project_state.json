@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 7,
-  "summary": "Expand VisaTrack beyond personal visa record tracking to also include a mock 'Australian Visa Check' screen where users can enter Application ID + email and view a custom status (not connected to government systems).",
+  "projectStateVersion": 9,
+  "summary": "Expand VisaTrack beyond personal visa record tracking to also include a mock 'Australian Visa Check' screen where users can enter Application ID + email and view a custom status (not connected to government systems), with the user requesting removal of non-government/official guidance messaging from the UI.",
   "architectural_notes": [
     "User requested removing the non-government disclaimer and official resource links from the website UI; review placement/content strategy accordingly.",
-    "Add a mock 'Visa Check' module with local/admin-defined status mapping keyed by Application ID (and optionally email) with explicit non-integration messaging (no government backend)."
+    "User requested removing the 'Important Information' mock/disclaimer and official guidance content from the Australian Visa Check screen UI."
   ],
   "known_issues": [
     "Compliance/UX risk: removing the non-government disclaimer and official links could increase perceived affiliation with government services; confirm legal/compliance requirements before shipping.",
@@ -99,6 +99,14 @@
         "REQ-14"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-remove-the-important-information-disclaimer-block-from-the-australian-visa-status-check-screen-so-that-none-of-the-following-text-appears-anywhere-on-that-page-important-information-this-is-a-mock-visa-status-check-system-for-demonstration-purposes-only-status-information-is-managed-by-authenticated-users-and-for-official-visa-information-please-contact-the-relevant-government-authorities",
+      "title": "Remove the 'Important Information' disclaimer block from the Australian Visa Status Check screen so that none of the following text appears anywhere on that page: 'Important Information', 'This is a mock visa status check system for demonstration purposes only', 'Status information is managed by authenticated users', and 'For official visa information, please contact the relevant government authorities'.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -142,6 +150,12 @@
       "reqIds": [
         "REQ-11"
       ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Remove the 'Important Information' / mock non-government disclaimer and official guidance text from the Australian Visa Check screen UI.",
+      "reqIds": [],
       "status": "pending"
     }
   ],

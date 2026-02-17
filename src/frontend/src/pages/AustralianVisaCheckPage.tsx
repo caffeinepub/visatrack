@@ -178,24 +178,6 @@ export default function AustralianVisaCheckPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Info Card */}
-          <Card className="bg-muted/30">
-            <CardHeader>
-              <CardTitle className="text-base">Important Information</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>
-                • This is a mock visa status check system for demonstration purposes only
-              </p>
-              <p>
-                • Status information is managed by authenticated users
-              </p>
-              <p>
-                • For official visa information, please contact the relevant government authorities
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </AppLayout>

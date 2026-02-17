@@ -1,85 +1,21 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "VisaTrack: Mock Australian Visa Check UI + Status Management",
+  "title": "VisaTrack: Remove Important Information disclaimer from Australian Visa Status Check page",
   "requirements": [
     {
-      "id": "REQ-12",
-      "summary": "Add an \"Australian Visa Check\" screen to submit Application ID + Email and display the returned custom status or a \"No status found\" message.",
+      "id": "REQ-15",
+      "summary": "Remove the 'Important Information' disclaimer card and its bullet text from the Australian Visa Status Check page while keeping the rest of the page behavior unchanged.",
       "acceptanceCriteria": [
-        "The screen includes input fields for Application ID and Email and a primary action to check status.",
-        "On submit, the UI calls the backend check query and renders the returned status data when present.",
-        "When no entry is found, the UI shows a user-friendly empty-state message in English (e.g., \"No status found for that Application ID and email.\").",
-        "The screen uses existing Tailwind/Shadcn styling conventions and is responsive."
+        "On the 'Australian Visa Status Check' page, the 'Important Information' card/section is no longer rendered.",
+        "A text search of the rendered 'Australian Visa Status Check' page does not show any of the removed disclaimer bullet lines.",
+        "All other functionality on the page (form submission, results display, reset behavior) remains unchanged."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
-          "operation": "create",
-          "description": "Create the \"Australian Visa Check\" screen UI using existing Tailwind conventions and shadcn-ui form components (e.g., Card, Input, Label, Button) to collect Application ID + Email, submit the check, and render either the returned ApplicationStatus details or an English empty-state message. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add React Query hooks for checking a status by (applicationId, applicantEmail) via the backend actor (e.g., a query/mutation helper used by AustralianVisaCheckPage), with loading/error state surfaced for user-friendly UI handling."
-        }
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "summary": "Add an authenticated management UI that lets signed-in users create, edit, and delete custom application statuses and keeps lists fresh via React Query invalidation/refetch.",
-      "acceptanceCriteria": [
-        "When authenticated, users can add a new status entry with Application ID, Email, and a status text value.",
-        "Users can edit an existing entry’s status text and save changes.",
-        "Users can delete an entry with a confirmation step.",
-        "The list updates after mutations (via React Query invalidation/refetch) without requiring a full page reload."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/status/ApplicationStatusManager.tsx",
-          "operation": "create",
-          "description": "Create an authenticated status management component that lists the caller’s statuses and provides create/edit/delete flows, including a confirmation dialog for delete. Use shadcn-ui components (e.g., Card, Table/List, Dialog/AlertDialog, Input, Textarea, Button) and sonner toasts for success/failure feedback. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add React Query hooks for: listing the current caller’s saved status entries, creating/updating a status entry, and deleting an entry. Ensure mutations invalidate/refetch the list query key(s) so the UI updates without a full page reload."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Wire the new ApplicationStatusManager into the authenticated dashboard experience (e.g., a new section/card on the dashboard). Ensure it is only visible/usable when authenticated, consistent with the app’s existing Internet Identity + authorization pattern."
-        }
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "summary": "Add navigation so users (authenticated or not) can reach the \"Australian Visa Check\" screen without editing immutable hook/provider files.",
-      "acceptanceCriteria": [
-        "A clear navigation entry point to \"Australian Visa Check\" exists in the authenticated app experience (e.g., header or dashboard area).",
-        "If the user is unauthenticated, there is still a clear way to reach the check screen from the landing experience.",
-        "Navigation does not require modifying any files listed under frontend.immutablePaths."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useHashRoute.ts",
-          "operation": "create",
-          "description": "Add a small hash-based routing helper (e.g., read/write current hash route and subscribe to hashchange) to support navigating to the \"Australian Visa Check\" screen without introducing provider/hook changes."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wire hash-based navigation into the root render logic so the app can display the \"Australian Visa Check\" screen for both unauthenticated and authenticated users, while preserving existing auth/profile gating for dashboard flows."
-        },
-        {
-          "path": "frontend/src/components/layout/Header.tsx",
-          "operation": "modify",
-          "description": "Add a clear navigation control in the header to reach \"Australian Visa Check\" (e.g., a Button/Link that updates the hash route). Use existing shadcn-ui Button styling conventions. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/LandingPage.tsx",
-          "operation": "modify",
-          "description": "Add a clear unauthenticated navigation entry point from the landing experience to the \"Australian Visa Check\" screen (e.g., a secondary button near the hero CTA that updates the hash route). Use existing Tailwind/shadcn-ui conventions. Verify the component's usage instructions before implementing."
+          "description": "Delete the JSX block that renders the 'Important Information' Card (including its title and the three disclaimer bullet lines) so none of the specified disclaimer text appears anywhere on this page; do not alter the form submission, results rendering, or reset logic."
         }
       ]
     }

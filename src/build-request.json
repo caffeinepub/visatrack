@@ -1,135 +1,39 @@
 {
   "kind": "build_request",
-  "title": "Add mock Australian Visa Check with custom per-application status",
+  "title": "Remove Important Information disclaimer from Visa Check page",
   "projectName": "VisaTrack",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-10",
-      "text": "Add backend support for a mock Australian visa application status registry keyed by (Application ID, Email) where authenticated users can create, update, list, and delete custom status entries (no integration with any external/government systems).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-8"
-        ],
-        "quotes": [
-          "make australia work visa satatus check website when applicant can check visa application id and email",
-          "c"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend exposes new methods to create/update a status entry for a given Application ID + Email pair, and to delete it.",
-        "Backend exposes a method to list the current caller’s saved status entries.",
-        "All create/update/delete/list operations require an authenticated user (same authorization pattern as existing visa record CRUD).",
-        "No calls are made to any external endpoints; all status values are user-defined and stored internally."
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "text": "Add a backend query method that allows checking the stored custom status by providing Application ID and Email, returning the matching entry (or null if none exists).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-8"
-        ],
-        "quotes": [
-          "make australia work visa satatus check website when applicant can check visa application id and email",
-          "c"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend exposes a query that takes Application ID and Email and returns the stored custom status entry (or null).",
-        "The query performs an exact match on both Application ID and Email.",
-        "If no entry exists for the pair, the query returns null (and does not trap)."
-      ]
-    },
-    {
-      "id": "REQ-12",
-      "text": "Create a new frontend page/screen labeled \"Australian Visa Check\" that lets a user enter Application ID and Email, submit, and view the returned custom status (or a clear \"No status found\" message).",
+      "id": "REQ-15",
+      "text": "Remove the 'Important Information' disclaimer block from the Australian Visa Status Check screen so that none of the following text appears anywhere on that page: 'Important Information', 'This is a mock visa status check system for demonstration purposes only', 'Status information is managed by authenticated users', and 'For official visa information, please contact the relevant government authorities'.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6",
-          "msg-8"
+          "msg-4",
+          "msg-5"
         ],
         "quotes": [
-          "make australia work visa satatus check website when applicant can check visa application id and email",
-          "c"
+          "Important Information\n• This is a mock visa status check system for demonstration purposes only\n\n• Status information is managed by authenticated users\n\n• For official visa information, please contact the relevant government authorities",
+          "remove"
         ]
       },
       "acceptanceCriteria": [
-        "The screen includes input fields for Application ID and Email and a primary action to check status.",
-        "On submit, the UI calls the backend check query and renders the returned status data when present.",
-        "When no entry is found, the UI shows a user-friendly empty-state message in English (e.g., \"No status found for that Application ID and email.\").",
-        "The screen uses existing Tailwind/Shadcn styling conventions and is responsive."
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "text": "Provide an authenticated management UI for custom statuses where signed-in users can create, edit, and delete status entries for (Application ID, Email) and set a user-defined status text.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-8"
-        ],
-        "quotes": [
-          "make australia work visa satatus check website when applicant can check visa application id and email",
-          "c"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When authenticated, users can add a new status entry with Application ID, Email, and a status text value.",
-        "Users can edit an existing entry’s status text and save changes.",
-        "Users can delete an entry with a confirmation step.",
-        "The list updates after mutations (via React Query invalidation/refetch) without requiring a full page reload."
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "text": "Add navigation so users can reach the \"Australian Visa Check\" screen from the existing app UI without editing immutable hook/provider files.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "make australia work visa satatus check website when applicant can check visa application id and email"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A clear navigation entry point to \"Australian Visa Check\" exists in the authenticated app experience (e.g., header or dashboard area).",
-        "If the user is unauthenticated, there is still a clear way to reach the check screen from the landing experience.",
-        "Navigation does not require modifying any files listed under frontend.immutablePaths."
+        "On the 'Australian Visa Status Check' page, the 'Important Information' card/section is no longer rendered.",
+        "A text search of the rendered 'Australian Visa Status Check' page does not show any of the removed disclaimer bullet lines.",
+        "All other functionality on the page (form submission, results display, reset behavior) remains unchanged."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if existing stable state must be upgraded.",
-    "Do not integrate with any real Australian government/VEVO/ImmiAccount systems; the status check must remain mock and user-defined.",
-    "Do not edit files under frontend.immutablePaths (compose instead).",
-    "Use English for any user-facing text."
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything in frontend/src/components/ui (immutable paths)."
   ],
   "nonGoals": [
-    "Implementing real visa status verification or scraping of official sites.",
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Adding external databases or non-Motoko backend services.",
-    "Adding real-time features such as WebSockets or push notifications."
+    "Do not change backend logic, schemas, or APIs for application status checking.",
+    "Do not add new disclaimer content or new external links as part of this change."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }
