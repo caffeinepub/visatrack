@@ -38,6 +38,9 @@ import {
   useDeleteApplicationStatus,
 } from '../../hooks/useQueries';
 import type { ApplicationStatus } from '../../backend';
+import { useBlobObjectUrl } from '../../hooks/useBlobObjectUrl';
+import PdfAttachmentSection from './PdfAttachmentSection';
+import { openPDFInNewTab, downloadPDF } from '../../utils/pdfAttachment';
 
 type FormData = {
   applicationId: string;
@@ -66,6 +69,15 @@ export default function ApplicationStatusManager() {
   const { data: statuses = [], isLoading } = useGetAllApplicationStatuses();
   const createOrUpdate = useCreateOrUpdateApplicationStatus();
   const deleteStatus = useDeleteApplicationStatus();
+
+  // Check if editing status has a valid attachment
+  const hasExistingAttachment = editingStatus?.attachment && editingStatus.attachment.bytes && editingStatus.attachment.bytes.length > 0;
+
+  // Create Blob URL for existing attachment preview
+  const { url: pdfUrl, error: pdfUrlError } = useBlobObjectUrl(
+    hasExistingAttachment ? editingStatus.attachment?.bytes : undefined,
+    hasExistingAttachment ? (editingStatus.attachment?.contentType || 'application/pdf') : undefined
+  );
 
   const handleOpenForm = (status?: ApplicationStatus) => {
     if (status) {
@@ -125,6 +137,32 @@ export default function ApplicationStatusManager() {
 
   const handleRemoveFile = () => {
     setFormData({ ...formData, pdfFile: null });
+  };
+
+  const handleViewPDF = () => {
+    if (!editingStatus?.attachment?.bytes || editingStatus.attachment.bytes.length === 0) {
+      toast.error('No PDF attachment available');
+      return;
+    }
+
+    openPDFInNewTab(
+      editingStatus.attachment.bytes,
+      editingStatus.attachment.contentType || 'application/pdf',
+      editingStatus.attachment.filename
+    );
+  };
+
+  const handleDownloadPDF = () => {
+    if (!editingStatus?.attachment?.bytes || editingStatus.attachment.bytes.length === 0) {
+      toast.error('No PDF attachment available');
+      return;
+    }
+
+    downloadPDF(
+      editingStatus.attachment.bytes,
+      editingStatus.attachment.filename || 'attachment.pdf',
+      editingStatus.attachment.contentType || 'application/pdf'
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -389,12 +427,6 @@ export default function ApplicationStatusManager() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-              ) : editingStatus?.attachment ? (
-                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm flex-1">{editingStatus.attachment.filename}</span>
-                  <span className="text-xs text-muted-foreground">(Current)</span>
-                </div>
               ) : null}
               <Input
                 id="pdfFile"
@@ -407,6 +439,17 @@ export default function ApplicationStatusManager() {
                 PDF files only, max 5MB
               </p>
             </div>
+
+            {/* Attached Document Section - Only show when editing and has attachment */}
+            {editingStatus && hasExistingAttachment && !formData.pdfFile && (
+              <PdfAttachmentSection
+                attachment={editingStatus.attachment}
+                pdfUrl={pdfUrl || undefined}
+                pdfUrlError={pdfUrlError || undefined}
+                onViewPDF={handleViewPDF}
+                onDownloadPDF={handleDownloadPDF}
+              />
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleCloseForm}>

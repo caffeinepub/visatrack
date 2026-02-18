@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the Australian Visa Status Check so it never renders a blank outcome after submission, supports the unauthenticated demo lookup, and shows a minimal fallback message for unexpected runtime/render failures.
+**Goal:** Allow approvers and public users to reliably preview, view, and download an attached PDF document from application status results.
 
 **Planned changes:**
-- Update the Australian Visa Status Check results rendering/visibility logic so a submission always shows one of: “Application Found”, the existing “No status found…” message, or the existing error message (including when the backend returns null/None/[] or the request rejects).
-- Ensure unauthenticated users can call the backend check operation without authorization traps and can retrieve only the built-in demo status for Application ID “4906670766” + email “jr321134@gmail.com”, with trimming and case-insensitive email normalization.
-- Add a minimal error fallback for unexpected runtime/render failures on the Visa Status Check page (or its layout) that displays an English retry instruction and logs the underlying error to the browser console.
+- Update the approval UI (Application Status Management) to show an “Attached Document” section when a non-empty PDF attachment exists, including an inline PDF preview (via Blob URL) and “View PDF” / “Download PDF” buttons.
+- Add fallback handling on the approval UI: if inline preview/Blob URL creation fails, show a clear error message while keeping “View PDF” and “Download PDF” functional.
+- Update the public status result screen (Australian Visa Status Check) to ensure the attachment section includes an inline preview (when possible) and always provides “View PDF” / “Download PDF” actions when attachment bytes are returned.
+- Display a clear “No attached document available for this application.” message on both screens when there is no attachment or attachment bytes are empty.
 
-**User-visible outcome:** After submitting an Application ID and email, users always see a clear result/message (found, no match, or error) instead of a blank page; unauthenticated users can successfully see the demo “Rojee Sharma / Work visa approved” result for the provided demo credentials; unexpected render/runtime errors show a simple retry message rather than a blank screen.
+**User-visible outcome:** On both the approval screen and the public status result screen, users can preview an attached PDF (when supported) and can always click “View PDF” to open it in a new tab or “Download PDF” to save it; if no PDF exists, they see a clear no-document message.

@@ -115,16 +115,54 @@ export function useGetUpcomingReminders() {
   });
 }
 
-// Application Status Queries
 export function useCheckApplicationStatus() {
   const { actor } = useActor();
 
   return useMutation({
-    mutationFn: async ({ applicationId, applicantEmail }: { applicationId: string; applicantEmail: string }) => {
-      if (!actor) throw new Error('Actor not available');
+    mutationFn: async ({
+      applicationId,
+      applicantEmail,
+    }: {
+      applicationId: string;
+      applicantEmail: string;
+    }) => {
+      console.log('[useCheckApplicationStatus] Mutation called', {
+        actorPresent: !!actor,
+        applicationId,
+        applicantEmail,
+      });
+
+      if (!actor) {
+        console.error('[useCheckApplicationStatus] Actor not available at mutation time');
+        throw new Error('Connection not ready. Please wait a moment and try again.');
+      }
+
       const normalized = normalizeApplicationKey(applicationId, applicantEmail);
-      const rawResponse = await actor.getApplicationStatus(normalized.applicationId, normalized.applicantEmail);
-      return normalizeApplicationStatusResult(rawResponse);
+      
+      console.log('[useCheckApplicationStatus] Calling backend with normalized key:', normalized);
+
+      try {
+        const rawResult = await actor.getApplicationStatus(
+          normalized.applicationId,
+          normalized.applicantEmail
+        );
+
+        console.log('[useCheckApplicationStatus] Raw backend response:', rawResult);
+
+        const normalizedResult = normalizeApplicationStatusResult(rawResult);
+
+        console.log('[useCheckApplicationStatus] Normalized result:', normalizedResult);
+
+        return normalizedResult;
+      } catch (error) {
+        console.error('[useCheckApplicationStatus] Backend call failed:', {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorName: error instanceof Error ? error.name : undefined,
+          errorStack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
     },
   });
 }
@@ -149,12 +187,15 @@ export function useCreateOrUpdateApplicationStatus() {
   return useMutation({
     mutationFn: async (status: ApplicationStatus) => {
       if (!actor) throw new Error('Actor not available');
+      
       const normalized = normalizeApplicationKey(status.applicationId, status.applicantEmail);
+      
       const normalizedStatus: ApplicationStatus = {
         ...status,
         applicationId: normalized.applicationId,
         applicantEmail: normalized.applicantEmail,
       };
+      
       return actor.createOrUpdateApplicationStatus(normalizedStatus);
     },
     onSuccess: () => {
@@ -168,10 +209,21 @@ export function useDeleteApplicationStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ applicationId, applicantEmail }: { applicationId: string; applicantEmail: string }) => {
+    mutationFn: async ({
+      applicationId,
+      applicantEmail,
+    }: {
+      applicationId: string;
+      applicantEmail: string;
+    }) => {
       if (!actor) throw new Error('Actor not available');
+      
       const normalized = normalizeApplicationKey(applicationId, applicantEmail);
-      return actor.deleteApplicationStatus(normalized.applicationId, normalized.applicantEmail);
+      
+      return actor.deleteApplicationStatus(
+        normalized.applicationId,
+        normalized.applicantEmail
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicationStatuses'] });

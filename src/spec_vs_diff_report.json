@@ -1,57 +1,48 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T08:12:32.457Z",
-  "summary": "Frontend changes add an App-level error boundary and update the Australian Visa Status Check page state handling to avoid blank outcomes after submission. However, there is no visible backend change to enable unauthenticated demo lookups, and the new status-check mutation still fails when no actor is available. Several unrelated UI/product changes (e.g., footer simplification, PDF preview, dashboard status manager) appear in the diff summary but were not requested.",
+  "generatedAt": "2026-02-18T04:14:55.795Z",
+  "summary": "REQ-1 is largely implemented via a reusable PdfAttachmentSection with inline preview, error/fallback messaging, and View/Download buttons, and ApplicationStatusManager is updated to create a Blob URL for existing attachments. However, based on the truncated diff, the actual wiring for View/Download actions (opening a new tab and downloading with a .pdf filename using attachment bytes) cannot be verified. REQ-2 cannot be verified from the provided diff because the public result screen file changes are not included in the modified-files list/content.",
   "missing_requirements": [
     {
-      "id": "REQ-28",
-      "requirement": "Ensure unauthenticated users can successfully run the Australian Visa Status Check against the backend and receive the built-in demo status for Application ID \"4906670766\" and applicant email \"jr321134@gmail.com\" (with trimming and case-insensitive email), without exposing user-created statuses via the public endpoint.",
-      "reason": "No backend/main.mo changes are shown to (a) allow unauthenticated access without an authorization trap, (b) return the built-in demo status for the specified inputs, or (c) restrict unauthenticated callers to demo-only results. Additionally, the frontend mutation currently throws when no actor is available, which would prevent unauthenticated checks if the actor is not created for anonymous users.",
+      "id": "REQ-1",
+      "requirement": "Clicking “View PDF” opens the PDF in a new tab using the attachment bytes, and clicking “Download PDF” downloads the PDF using the attachment bytes and a .pdf filename.",
+      "reason": "PdfAttachmentSection only renders buttons that call provided callbacks; the diff does not show the parent wiring those callbacks to open/download using the attachment bytes (and .pdf filename). ApplicationStatusManager imports utilities, but the relevant handler implementation is truncated/not shown.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/hooks/useQueries.ts (useCheckApplicationStatus: `if (!actor) throw new Error('Actor not available');`)"
+        "frontend/src/components/status/PdfAttachmentSection.tsx",
+        "frontend/src/components/status/ApplicationStatusManager.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
+      "reason": "No diff content is provided for the public status result screen component(s). The diff does not show updates (or confirmation of continued behavior) for Australian Visa Status Check in the modified file list.",
+      "evidence": [
+        "file-diff MODIFIED FILES list (does not include the public status/result screen file)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added an application-wide error boundary UI with a refresh button and additional copy (including 'contact support').",
-      "reason": "REQ-29 asks for a minimal fallback message for unexpected runtime failures with retry instruction and console logging; the implemented UI adds extra elements/copy beyond the minimal requirement.",
+      "description": "Added PDF upload validation (must be application/pdf; max size 5MB) in the Application Status edit flow.",
+      "reason": "The BuildRequest focuses on viewing/downloading existing PDF attachments on approval and public result screens; it does not request new upload validation rules.",
       "evidence": [
-        "frontend/src/components/errors/AppErrorBoundary.tsx"
+        "frontend/src/components/status/ApplicationStatusManager.tsx"
       ]
     },
     {
-      "description": "Added inline PDF preview and PDF view/download handling on the Australian Visa Status Check results.",
-      "reason": "The BuildRequest does not request PDF preview/download functionality; it only requests fixing blank outcomes and adding a runtime error fallback.",
+      "description": "Displays the attachment filename in the PDF attachment section.",
+      "reason": "Filename display is not part of REQ-1/REQ-2 acceptance criteria (preview + View/Download actions + error/no-attachment messaging).",
       "evidence": [
-        "frontend/src/pages/AustralianVisaCheckPage.tsx",
-        "frontend-file-summaries.txt (mentions inline PDF preview and Blob URL cleanup)"
-      ]
-    },
-    {
-      "description": "Introduced/mentioned new authenticated dashboard functionality for managing application status entries (ApplicationStatusManager).",
-      "reason": "Not requested by REQ-27/28/29 and outside the stated scope (fix blank outcome + unauth demo check + error fallback).",
-      "evidence": [
-        "frontend-file-summaries.txt (mentions `frontend/src/components/status/ApplicationStatusManager.tsx` and DashboardPage updates)"
-      ]
-    },
-    {
-      "description": "Modified footer content (removed disclaimer/official links, added attribution with UTM tracking).",
-      "reason": "Not part of the requested fix for the Visa Status Check blank outcome or error boundary; also conflicts with the request to avoid changing existing product copy on the Visa Status Check page beyond a minimal fallback message.",
-      "evidence": [
-        "frontend-file-summaries.txt (mentions `frontend/src/components/layout/Footer.tsx` changes)"
+        "frontend/src/components/status/PdfAttachmentSection.tsx"
       ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/errors/AppErrorBoundary.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/src/components/status/ApplicationStatusManager.tsx",
+    "frontend/src/components/status/PdfAttachmentSection.tsx",
     "project_state.json"
   ]
 }

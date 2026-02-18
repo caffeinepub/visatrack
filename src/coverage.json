@@ -1,50 +1,37 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T08:12:32.461Z",
+  "generatedAt": "2026-02-18T04:14:55.798Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-27",
-        "summary": "Fix the Australian Visa Status Check flow so that after submitting an Application ID and Applicant Email, the page always renders a visible outcome (found result, “No status found…”, or an error message) and never appears blank to the user.",
+        "id": "REQ-1",
+        "summary": "On the approval UI (Application Status Management), when an application status has a PDF attachment, display an inline PDF preview and provide explicit “View PDF” and “Download PDF” actions so approvers can reliably view and download the attached document during approval.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+          "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "frontend/src/utils/pdfAttachment.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+          "frontend/src/components/status/ApplicationStatusManager.tsx"
         ]
       },
       {
-        "id": "REQ-28",
-        "summary": "Ensure unauthenticated users can successfully run the Australian Visa Status Check against the backend and receive the built-in demo status for Application ID \"4906670766\" and applicant email \"jr321134@gmail.com\" (including correct normalization behavior for trimming whitespace and case-insensitive email).",
+        "id": "REQ-2",
+        "summary": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+          "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "frontend/src/components/status/PdfAttachmentSection.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/AustralianVisaCheckPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-29",
-        "summary": "Add a user-visible fallback for unexpected runtime/render failures so the app does not show a completely blank screen; display an English error message with a simple retry instruction and log the underlying error to the console for debugging.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/errors/AppErrorBoundary.tsx",
-          "frontend/src/App.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/errors/AppErrorBoundary.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/status/PdfAttachmentSection.tsx"
         ]
       }
     ]
@@ -54,10 +41,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/errors/AppErrorBoundary.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/src/components/status/ApplicationStatusManager.tsx",
+    "frontend/src/components/status/PdfAttachmentSection.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

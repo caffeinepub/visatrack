@@ -1,53 +1,66 @@
-import type { ApplicationStatus } from '../backend';
+import type { ApplicationStatus, PDFData } from '../backend';
+import { unwrapOptional, normalizeBytes, normalizeString } from './candidOption';
 
 /**
  * Normalizes the raw backend response from getApplicationStatus into ApplicationStatus | null.
- * Handles various Candid binding shapes that may be returned:
- * - null or undefined → null
- * - { __kind__: 'None' } → null
- * - { __kind__: 'Some', value: T } → T
- * - [] → null
- * - [value] → value
- * - direct object → object
+ * Handles various Candid binding shapes and ensures nested attachment fields are properly unwrapped.
+ * Ensures attachment has valid bytes, contentType defaults to application/pdf, and filename ends with .pdf.
  */
 export function normalizeApplicationStatusResult(
   rawResponse: unknown
 ): ApplicationStatus | null {
-  // Handle null/undefined
-  if (rawResponse === null || rawResponse === undefined) {
+  // First unwrap the top-level optional
+  const unwrapped = unwrapOptional<any>(rawResponse);
+  
+  if (!unwrapped) {
     return null;
   }
 
-  // Handle array-based optional (Candid binding variant)
-  if (Array.isArray(rawResponse)) {
-    if (rawResponse.length === 0) {
-      return null;
-    }
-    if (rawResponse.length === 1) {
-      return rawResponse[0] as ApplicationStatus;
-    }
-    console.warn('Unexpected array length in getApplicationStatus response:', rawResponse);
+  // Ensure it looks like an ApplicationStatus
+  if (typeof unwrapped !== 'object' || !('applicationId' in unwrapped) || !('applicantEmail' in unwrapped)) {
+    console.warn('Unexpected response shape from getApplicationStatus:', rawResponse);
     return null;
   }
 
-  // Handle object-based optional with __kind__ discriminator
-  if (typeof rawResponse === 'object' && rawResponse !== null) {
-    const obj = rawResponse as any;
+  // Normalize the attachment field if present
+  let normalizedAttachment: PDFData | undefined = undefined;
+  
+  if (unwrapped.attachment) {
+    const rawAttachment = unwrapOptional<any>(unwrapped.attachment);
     
-    if (obj.__kind__ === 'None') {
-      return null;
-    }
-    
-    if (obj.__kind__ === 'Some' && obj.value) {
-      return obj.value as ApplicationStatus;
-    }
-
-    // Direct object (no wrapper) - assume it's the ApplicationStatus
-    if ('applicationId' in obj && 'applicantEmail' in obj) {
-      return obj as ApplicationStatus;
+    if (rawAttachment) {
+      // Unwrap nested optional fields within the attachment
+      let filename = normalizeString(unwrapOptional(rawAttachment.filename)) || 'attachment.pdf';
+      const contentType = normalizeString(unwrapOptional(rawAttachment.contentType)) || 'application/pdf';
+      const bytes = normalizeBytes(unwrapOptional(rawAttachment.bytes));
+      
+      // Ensure filename ends with .pdf
+      if (!filename.toLowerCase().endsWith('.pdf')) {
+        filename = `${filename}.pdf`;
+      }
+      
+      // Only include attachment if we have valid bytes
+      if (bytes && bytes.length > 0) {
+        normalizedAttachment = {
+          filename,
+          contentType,
+          bytes,
+        };
+      }
     }
   }
 
-  console.warn('Unexpected response shape from getApplicationStatus:', rawResponse);
-  return null;
+  // Build the normalized ApplicationStatus
+  const normalized: ApplicationStatus = {
+    applicationId: unwrapped.applicationId,
+    applicantEmail: unwrapped.applicantEmail,
+    applicantName: unwrapped.applicantName || '',
+    visaType: unwrapped.visaType || '',
+    status: unwrapped.status || '',
+    lastUpdated: unwrapped.lastUpdated,
+    comments: unwrapOptional(unwrapped.comments) || undefined,
+    attachment: normalizedAttachment,
+  };
+
+  return normalized;
 }

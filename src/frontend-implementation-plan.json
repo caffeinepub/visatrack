@@ -1,64 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "VisaTrack — Prevent blank outcomes on Australian Visa Status Check",
+  "title": "Visa Approval Portal — PDF preview + view/download actions in approval and public result screens",
   "requirements": [
     {
-      "id": "REQ-27",
-      "summary": "Ensure the Australian Visa Status Check always renders a visible outcome after submit (found, no status found, or error) and never appears blank.",
+      "id": "REQ-1",
+      "summary": "Add an “Attached Document” section on the approval edit UI that previews a PDF inline (via Blob URL) and provides reliable “View PDF” and “Download PDF” actions with robust fallback/error messaging.",
       "acceptanceCriteria": [
-        "On the Australian Visa Status Check page, submitting the form always results in one of the following becoming visible: (a) “Application Found” result UI, (b) the existing “No status found for that Application ID and email…” message, or (c) the existing error message (“Unable to check application status. Please try again later.”).",
-        "If the backend returns no match (Motoko optional null/None/[]), the UI shows the “No status found…” message.",
-        "If the request fails (network error, canister error, or thrown exception), the UI shows the existing error message and does not remain blank.",
-        "The results card visibility logic is correct even when the mutation resolves to null, resolves to a status object, or rejects."
+        "When editing an Application Status that contains an attachment with non-empty bytes, the approval UI shows an “Attached Document” section containing an inline PDF preview (via a Blob URL) and buttons labeled “View PDF” and “Download PDF”.",
+        "Clicking “View PDF” opens the PDF in a new tab using the attachment bytes, and clicking “Download PDF” downloads the PDF using the attachment bytes and a .pdf filename.",
+        "If the browser cannot render the PDF inline or a Blob URL cannot be created, the UI displays a clear error message and still shows working “View PDF” and “Download PDF” buttons.",
+        "When an Application Status has no attachment (or empty bytes), the approval UI shows a clear “No attached document available for this application.” message and does not show preview/actions."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "operation": "modify",
+          "description": "Render the existing PdfAttachmentSection within the edit/create dialog as the “Attached Document” section for the currently-edited ApplicationStatus; use the existing useBlobObjectUrl hook to create the inline preview Blob URL from attachment bytes and pass pdfUrl/pdfUrlError through; wire the section’s “View PDF” and “Download PDF” actions to openPDFInNewTab and downloadPDF using the attachment bytes and a safe .pdf filename. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/pdfAttachment.ts",
+          "operation": "modify",
+          "description": "Harden attachment view/download helpers for approval-screen usage: ensure filename normalization is consistently applied (always .pdf) and keep error handling predictable so the UI can show a clear message when Blob URL creation/open fails."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Keep the public status result screen’s PDF attachment section showing preview when available and always providing “View PDF” and “Download PDF” actions using returned attachment bytes.",
+      "acceptanceCriteria": [
+        "When a status lookup returns an attachment with non-empty bytes, the Status Result shows the PDF attachment section with an inline preview (if possible) and buttons labeled “View PDF” and “Download PDF”.",
+        "“View PDF” opens a new tab and “Download PDF” downloads the file; both actions work using the bytes returned by the backend.",
+        "When a lookup result has no attachment, the Status Result shows the “No attached document available for this application.” message."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "operation": "modify",
-          "description": "Fix results visibility state so the results area becomes visible immediately upon submit (show a processing state while pending), and always transitions to exactly one visible outcome after the mutation settles. Ensure a resolved-but-undefined/empty success is treated as a no-match (null) to avoid blank rendering. Keep existing user-facing copy unchanged except for state/visibility behavior."
-        }
-      ]
-    },
-    {
-      "id": "REQ-28",
-      "summary": "Allow unauthenticated users to run the Australian Visa Status Check successfully and display the demo status for the specified Application ID/email with correct normalization.",
-      "acceptanceCriteria": [
-        "When not signed in, checking Application ID \"4906670766\" with email \"jr321134@gmail.com\" returns and displays an “Application Found” result with applicant name “Rojee Sharma” and status “Work visa approved”.",
-        "The lookup works when the user includes leading/trailing spaces in Application ID and/or email, and when the email casing differs (e.g., \"JR321134@GMAIL.COM\").",
-        "Unauthenticated callers do not trigger an authorization trap for the check operation, and they still cannot read any user-created application statuses via the public check endpoint (only the built-in demo status is available unauthenticated)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Prevent unauthenticated sessions from invoking authenticated-only profile queries that may error/trap and interfere with the public visa-check flow (e.g., disable getCallerUserProfile querying when not signed in). Keep visa-check mutation enabled for anonymous actors and continue to normalize applicationId/email before calling the backend."
+          "description": "Confirm and enforce that Status Result always renders PdfAttachmentSection and that View/Download handlers always use backend-returned attachment bytes with a safe default .pdf filename; ensure any Blob URL creation failure is surfaced via pdfUrlError so the section shows the fallback error message while keeping actions working. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "path": "frontend/src/components/status/PdfAttachmentSection.tsx",
           "operation": "modify",
-          "description": "Ensure submission uses the same normalization expectations as the backend lookup (trim whitespace for Application ID; trim + lowercase email) and that the found/no-found rendering works for unauthenticated users without requiring login."
-        }
-      ]
-    },
-    {
-      "id": "REQ-29",
-      "summary": "Add a user-visible runtime/render fallback so unexpected errors do not produce a blank screen; log the underlying error for debugging.",
-      "acceptanceCriteria": [
-        "If a runtime error occurs during render of the Australian Visa Status Check page (or its layout), a fallback UI is shown instead of a blank page.",
-        "The fallback UI contains a clear English message indicating something went wrong and instructs the user to refresh/retry.",
-        "The underlying error is logged to the browser console to aid debugging, without changing existing user-facing copy beyond the new fallback message."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/errors/AppErrorBoundary.tsx",
-          "operation": "create",
-          "description": "Create a React error boundary component that catches render/runtime errors, logs the full error details to console, and shows a minimal English fallback message with a simple refresh/retry instruction."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wrap the Australian Visa Status Check route rendering (and its layout tree) with the new AppErrorBoundary so a fallback UI is shown instead of a blank screen if an unexpected render/runtime error occurs."
+          "description": "Ensure PdfAttachmentSection behavior matches acceptance criteria: show the exact “No attached document available for this application.” message when bytes are empty/missing; when bytes exist, always render “View PDF” and “Download PDF” buttons even if pdfUrl is missing or pdfUrlError is present, and display a clear preview error message when pdfUrl cannot be created. Verify the component's usage instructions before implementing."
         }
       ]
     }

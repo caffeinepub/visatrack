@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '../components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, AlertCircle, CheckCircle2, FileText, Download } from 'lucide-react';
+import { Loader2, Search, AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 import { useCheckApplicationStatus } from '../hooks/useQueries';
+import { useActorReadiness } from '../hooks/useActorReadiness';
 import { useBlobObjectUrl } from '../hooks/useBlobObjectUrl';
+import PdfAttachmentSection from '../components/status/PdfAttachmentSection';
 import type { ApplicationStatus } from '../backend';
 import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
+import { openPDFInNewTab, downloadPDF } from '../utils/pdfAttachment';
 
 export default function AustralianVisaCheckPage() {
   const [applicationId, setApplicationId] = useState('');
@@ -17,14 +20,31 @@ export default function AustralianVisaCheckPage() {
   const [result, setResult] = useState<ApplicationStatus | null | undefined>(undefined);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isConnectionError, setIsConnectionError] = useState(false);
 
   const checkStatus = useCheckApplicationStatus();
+  const { isInitializing, isReady, hasError: actorInitError } = useActorReadiness();
 
-  // Create Blob URL for inline PDF preview
-  const pdfUrl = useBlobObjectUrl(
-    result?.attachment?.bytes,
-    result?.attachment?.contentType
+  // Only create Blob URL when we have valid attachment data
+  const hasValidAttachment = result?.attachment && result.attachment.bytes && result.attachment.bytes.length > 0;
+  const { url: pdfUrl, error: pdfUrlError } = useBlobObjectUrl(
+    hasValidAttachment ? result.attachment?.bytes : undefined,
+    hasValidAttachment ? (result.attachment?.contentType || 'application/pdf') : undefined
   );
+
+  // Developer diagnostics for attachment presence
+  useEffect(() => {
+    if (result && result !== null) {
+      console.log('[VisaCheck] Result attachment diagnostics:', {
+        hasAttachment: !!result.attachment,
+        contentType: result.attachment?.contentType,
+        bytesLength: result.attachment?.bytes ? result.attachment.bytes.length : 0,
+        filename: result.attachment?.filename,
+        pdfUrl: pdfUrl ? 'created' : 'null',
+        pdfUrlError,
+      });
+    }
+  }, [result, pdfUrl, pdfUrlError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +53,21 @@ export default function AustralianVisaCheckPage() {
       return;
     }
 
+    // Check if actor is ready
+    if (!isReady) {
+      console.warn('[VisaCheck] Submit blocked: actor not ready', {
+        isInitializing,
+        isReady,
+        actorInitError,
+      });
+      setSubmissionError('Connection is still initializing. Please wait a moment and try again.');
+      setIsConnectionError(true);
+      return;
+    }
+
     // Reset state and show processing immediately
     setSubmissionError(null);
+    setIsConnectionError(false);
     setResult(undefined);
     setHasSubmitted(true);
 
@@ -43,6 +76,7 @@ export default function AustralianVisaCheckPage() {
     console.log('[VisaCheck] Submitting check:', {
       input: { applicationId, applicantEmail },
       normalized,
+      actorReady: isReady,
     });
 
     try {
@@ -56,8 +90,21 @@ export default function AustralianVisaCheckPage() {
       // Ensure we always set a valid result (null for no match, object for found)
       setResult(status ?? null);
     } catch (error) {
-      console.error('[VisaCheck] Error checking status:', error);
-      setSubmissionError('Unable to check application status. Please try again later.');
+      console.error('[VisaCheck] Error checking status:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : undefined,
+      });
+
+      // Distinguish connection/setup errors from other errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Connection not ready') || errorMessage.includes('Actor not available')) {
+        setSubmissionError('Connection issue detected. Please refresh the page and try again.');
+        setIsConnectionError(true);
+      } else {
+        setSubmissionError('Unable to check application status. Please try again later.');
+        setIsConnectionError(false);
+      }
       setResult(null);
     }
   };
@@ -68,44 +115,34 @@ export default function AustralianVisaCheckPage() {
     setResult(undefined);
     setHasSubmitted(false);
     setSubmissionError(null);
+    setIsConnectionError(false);
     checkStatus.reset();
   };
 
   const handleViewPDF = () => {
-    if (!result?.attachment) return;
-    
-    try {
-      const blob = new Blob([new Uint8Array(result.attachment.bytes)], { 
-        type: result.attachment.contentType 
-      });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      
-      // Clean up the URL after a delay
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      console.error('Error opening PDF:', error);
+    if (!result?.attachment?.bytes || result.attachment.bytes.length === 0) {
+      console.error('[VisaCheck] Cannot view PDF: no bytes available');
+      return;
     }
+    
+    openPDFInNewTab(
+      result.attachment.bytes,
+      result.attachment.contentType || 'application/pdf',
+      result.attachment.filename
+    );
   };
 
   const handleDownloadPDF = () => {
-    if (!result?.attachment) return;
-    
-    try {
-      const blob = new Blob([new Uint8Array(result.attachment.bytes)], { 
-        type: result.attachment.contentType 
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = result.attachment.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
+    if (!result?.attachment?.bytes || result.attachment.bytes.length === 0) {
+      console.error('[VisaCheck] Cannot download PDF: no bytes available');
+      return;
     }
+    
+    downloadPDF(
+      result.attachment.bytes,
+      result.attachment.filename || 'attachment.pdf',
+      result.attachment.contentType || 'application/pdf'
+    );
   };
 
   const getTodayDate = () => {
@@ -117,10 +154,15 @@ export default function AustralianVisaCheckPage() {
   };
 
   // Determine what to show in results
-  const showProcessing = hasSubmitted && result === undefined && !submissionError;
-  const showError = hasSubmitted && submissionError !== null;
+  const showInitializing = isInitializing && hasSubmitted && result === undefined && !submissionError;
+  const showProcessing = !isInitializing && hasSubmitted && result === undefined && !submissionError && checkStatus.isPending;
+  const showConnectionError = hasSubmitted && isConnectionError && submissionError !== null;
+  const showError = hasSubmitted && !isConnectionError && submissionError !== null;
   const showNoMatch = hasSubmitted && result === null && !submissionError;
   const showFound = hasSubmitted && result !== null && result !== undefined && !submissionError;
+
+  // Disable submit if actor is not ready or form is invalid
+  const isSubmitDisabled = !isReady || checkStatus.isPending || !applicationId.trim() || !applicantEmail.trim();
 
   return (
     <AppLayout>
@@ -153,7 +195,7 @@ export default function AustralianVisaCheckPage() {
                       value={applicationId}
                       onChange={(e) => setApplicationId(e.target.value)}
                       required
-                      disabled={checkStatus.isPending}
+                      disabled={!isReady || checkStatus.isPending}
                     />
                   </div>
 
@@ -166,21 +208,46 @@ export default function AustralianVisaCheckPage() {
                       value={applicantEmail}
                       onChange={(e) => setApplicantEmail(e.target.value)}
                       required
-                      disabled={checkStatus.isPending}
+                      disabled={!isReady || checkStatus.isPending}
                     />
                   </div>
                 </div>
 
+                {/* Show initializing message if actor is not ready */}
+                {isInitializing && (
+                  <Alert>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      Connecting to service...
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Show actor initialization error */}
+                {actorInitError && !isInitializing && (
+                  <Alert variant="destructive">
+                    <WifiOff className="h-4 w-4" />
+                    <AlertDescription>
+                      Unable to connect to the service. Please refresh the page and try again.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex gap-3">
                   <Button
                     type="submit"
-                    disabled={checkStatus.isPending || !applicationId.trim() || !applicantEmail.trim()}
+                    disabled={isSubmitDisabled}
                     className="flex-1"
                   >
                     {checkStatus.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Checking...
+                      </>
+                    ) : isInitializing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connecting...
                       </>
                     ) : (
                       <>
@@ -206,11 +273,29 @@ export default function AustralianVisaCheckPage() {
                 <CardTitle>Status Result</CardTitle>
               </CardHeader>
               <CardContent>
+                {showInitializing && (
+                  <Alert>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      Connecting to service...
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {showProcessing && (
                   <Alert>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <AlertDescription>
                       Processing your request...
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {showConnectionError && (
+                  <Alert variant="destructive">
+                    <WifiOff className="h-4 w-4" />
+                    <AlertDescription>
+                      {submissionError}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -276,78 +361,14 @@ export default function AustralianVisaCheckPage() {
                       </div>
                     )}
 
-                    {result.attachment && (
-                      <div className="space-y-3 pt-2 border-t">
-                        <p className="text-sm text-muted-foreground">Attached Document</p>
-                        
-                        {/* Inline PDF Preview */}
-                        {pdfUrl ? (
-                          <div className="space-y-3">
-                            <div className="border rounded-lg overflow-hidden bg-muted/30">
-                              <object
-                                data={pdfUrl}
-                                type="application/pdf"
-                                className="w-full h-[600px]"
-                                aria-label="PDF preview"
-                              >
-                                <div className="flex flex-col items-center justify-center h-[600px] p-6 text-center space-y-3">
-                                  <FileText className="h-12 w-12 text-muted-foreground" />
-                                  <p className="text-sm text-muted-foreground">
-                                    Your browser cannot display the PDF inline. Please use the buttons below to view or download the document.
-                                  </p>
-                                </div>
-                              </object>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleViewPDF}
-                                className="flex-1 sm:flex-none"
-                              >
-                                <FileText className="mr-2 h-4 w-4" />
-                                View PDF
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDownloadPDF}
-                                className="flex-1 sm:flex-none"
-                              >
-                                <Download className="mr-2 h-4 w-4" />
-                                Download PDF
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleViewPDF}
-                              className="flex-1 sm:flex-none"
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              View PDF
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleDownloadPDF}
-                              className="flex-1 sm:flex-none"
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download PDF
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Always render attachment section - it will show "no document" message if needed */}
+                    <PdfAttachmentSection
+                      attachment={result.attachment}
+                      pdfUrl={pdfUrl ?? undefined}
+                      pdfUrlError={pdfUrlError ?? undefined}
+                      onViewPDF={handleViewPDF}
+                      onDownloadPDF={handleDownloadPDF}
+                    />
                   </div>
                 )}
               </CardContent>
