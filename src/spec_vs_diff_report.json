@@ -1,48 +1,52 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T04:14:55.795Z",
-  "summary": "REQ-1 is largely implemented via a reusable PdfAttachmentSection with inline preview, error/fallback messaging, and View/Download buttons, and ApplicationStatusManager is updated to create a Blob URL for existing attachments. However, based on the truncated diff, the actual wiring for View/Download actions (opening a new tab and downloading with a .pdf filename using attachment bytes) cannot be verified. REQ-2 cannot be verified from the provided diff because the public result screen file changes are not included in the modified-files list/content.",
+  "generatedAt": "2026-02-19T05:28:36.004Z",
+  "summary": "The diff implements comprehensive diagnostic logging throughout the PDF data flow (REQ-4), adds PDF validation utilities (REQ-2), and enhances the PdfAttachmentSection component with detailed state tracking (REQ-3). However, the investigation/diagnosis requirement (REQ-1) lacks explicit documentation of findings, and backend validation implementation is not evident in the frontend-only diff.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Clicking “View PDF” opens the PDF in a new tab using the attachment bytes, and clicking “Download PDF” downloads the PDF using the attachment bytes and a .pdf filename.",
-      "reason": "PdfAttachmentSection only renders buttons that call provided callbacks; the diff does not show the parent wiring those callbacks to open/download using the attachment bytes (and .pdf filename). ApplicationStatusManager imports utilities, but the relevant handler implementation is truncated/not shown.",
+      "requirement": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
+      "reason": "While diagnostic logging was added extensively, there is no explicit documentation, report, or code comments capturing the root cause findings or diagnosis results as required by the acceptance criteria ('Root cause of PDF display failure is identified')",
       "evidence": [
         "frontend/src/components/status/PdfAttachmentSection.tsx",
-        "frontend/src/components/status/ApplicationStatusManager.tsx"
+        "frontend/src/hooks/useBlobObjectUrl.ts"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
-      "reason": "No diff content is provided for the public status result screen component(s). The diff does not show updates (or confirmation of continued behavior) for Australian Visa Status Check in the modified file list.",
-      "evidence": [
-        "file-diff MODIFIED FILES list (does not include the public status/result screen file)"
-      ]
+      "requirement": "Backend logs or returns diagnostic information about PDF data integrity when storing attachments",
+      "reason": "The diff only shows frontend modifications. No backend files are included that would demonstrate backend validation checks or diagnostic logging when storing PDF attachment bytes. The acceptance criteria requires 'Backend logs or returns diagnostic information about PDF data integrity when storing attachments'",
+      "evidence": []
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added PDF upload validation (must be application/pdf; max size 5MB) in the Application Status edit flow.",
-      "reason": "The BuildRequest focuses on viewing/downloading existing PDF attachments on approval and public result screens; it does not request new upload validation rules.",
+      "description": "FNV-1a hash-based signature computation for PDF byte change detection",
+      "reason": "The bytesSignature.ts utility implements a hash-based signature system to detect when PDF bytes have changed. This was not requested in any requirement and goes beyond the scope of fixing display issues and adding diagnostic logging",
       "evidence": [
-        "frontend/src/components/status/ApplicationStatusManager.tsx"
+        "frontend/src/utils/bytesSignature.ts",
+        "frontend/src/hooks/useBlobObjectUrl.ts"
       ]
     },
     {
-      "description": "Displays the attachment filename in the PDF attachment section.",
-      "reason": "Filename display is not part of REQ-1/REQ-2 acceptance criteria (preview + View/Download actions + error/no-attachment messaging).",
+      "description": "Extended revocation delay management with timeout references",
+      "reason": "The useBlobObjectUrl hook includes timeout management and delayed URL revocation logic with timeoutRef and previousUrlRef. This URL lifecycle management complexity was not requested in the requirements",
       "evidence": [
-        "frontend/src/components/status/PdfAttachmentSection.tsx"
+        "frontend/src/hooks/useBlobObjectUrl.ts"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.85,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/status/ApplicationStatusManager.tsx",
     "frontend/src/components/status/PdfAttachmentSection.tsx",
+    "frontend/src/hooks/useBlobObjectUrl.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/src/utils/bytesSignature.ts",
+    "frontend/src/utils/getApplicationStatusResult.ts",
+    "frontend/src/utils/pdfAttachment.ts",
     "project_state.json"
   ]
 }

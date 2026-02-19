@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-on-the-approval-ui-application-status-management-when-an-application-status-has-a-pdf-attachment-display-an-inline-pdf-preview-and-provide-explicit-view-pdf-and-download-pdf-actions-so-approvers-can-reliably-view-and-download-the-attached-document-during-approval",
-      "featureTitle": "On the approval UI (Application Status Management), when an application status has a PDF attachment, display an inline PDF preview and provide explicit “View PDF” and “Download PDF” actions so approvers can reliably view and download the attached document during approval.",
+      "featureId": "feature-investigate-and-diagnose-why-pdf-attachments-in-approved-application-statuses-are-not-displaying-correctly-despite-previous-attempts-to-fix-the-issue-in-versions-39-40",
+      "featureTitle": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
       "files": [
-        "frontend/src/components/status/ApplicationStatusManager.tsx"
+        "frontend/src/components/status/PdfAttachmentSection.tsx",
+        "frontend/src/hooks/useBlobObjectUrl.ts",
+        "frontend/src/pages/AustralianVisaCheckPage.tsx",
+        "frontend/src/utils/pdfAttachment.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,10 +24,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-public-approval-result-screen-australian-visa-status-check-continues-to-render-the-pdf-attachment-section-with-a-preview-when-available-and-always-provides-view-and-download-actions-for-the-returned-attachment-bytes",
-      "featureTitle": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
+      "featureId": "feature-fix-the-pdfattachmentsection-component-to-reliably-display-approved-application-pdfs-by-ensuring-blob-urls-are-correctly-generated-from-valid-pdf-bytes-and-iframes-can-render-them",
+      "featureTitle": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
       "files": [
-        "frontend/src/components/status/PdfAttachmentSection.tsx"
+        "frontend/src/components/status/PdfAttachmentSection.tsx",
+        "frontend/src/hooks/useBlobObjectUrl.ts",
+        "frontend/src/utils/getApplicationStatusResult.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -35,7 +40,29 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-comprehensive-error-logging-to-track-the-complete-pdf-data-flow-from-backend-retrieval-through-blob-url-creation-to-iframe-rendering-including-validation-results-at-each-step",
+      "featureTitle": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
+      "files": [
+        "frontend/src/components/status/PdfAttachmentSection.tsx",
+        "frontend/src/hooks/useBlobObjectUrl.ts",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/utils/pdfAttachment.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

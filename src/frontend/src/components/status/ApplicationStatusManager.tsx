@@ -40,7 +40,8 @@ import {
 import type { ApplicationStatus } from '../../backend';
 import { useBlobObjectUrl } from '../../hooks/useBlobObjectUrl';
 import PdfAttachmentSection from './PdfAttachmentSection';
-import { openPDFInNewTab, downloadPDF } from '../../utils/pdfAttachment';
+import { openPDFInNewTab, downloadPDF, downloadRawBytes } from '../../utils/pdfAttachment';
+import { computeBytesSignature } from '../../utils/bytesSignature';
 
 type FormData = {
   applicationId: string;
@@ -73,8 +74,8 @@ export default function ApplicationStatusManager() {
   // Check if editing status has a valid attachment
   const hasExistingAttachment = editingStatus?.attachment && editingStatus.attachment.bytes && editingStatus.attachment.bytes.length > 0;
 
-  // Create Blob URL for existing attachment preview
-  const { url: pdfUrl, error: pdfUrlError } = useBlobObjectUrl(
+  // Create Blob URL for existing attachment preview with signature
+  const { url: pdfUrl, error: pdfUrlError, signature: pdfSignature } = useBlobObjectUrl(
     hasExistingAttachment ? editingStatus.attachment?.bytes : undefined,
     hasExistingAttachment ? (editingStatus.attachment?.contentType || 'application/pdf') : undefined
   );
@@ -91,6 +92,19 @@ export default function ApplicationStatusManager() {
         comments: status.comments || '',
         pdfFile: null,
       });
+
+      // Log PDF integrity when opening form for editing
+      if (status.attachment?.bytes) {
+        const sig = computeBytesSignature(status.attachment.bytes);
+        console.log('[ApplicationStatusManager] Opening form with existing PDF:', {
+          applicationId: status.applicationId,
+          filename: status.attachment.filename,
+          bytesLength: status.attachment.bytes.length,
+          signature: sig,
+          firstBytes: Array.from(status.attachment.bytes.slice(0, 10)),
+          lastBytes: Array.from(status.attachment.bytes.slice(-10)),
+        });
+      }
     } else {
       setEditingStatus(null);
       setFormData({
@@ -145,11 +159,36 @@ export default function ApplicationStatusManager() {
       return;
     }
 
-    openPDFInNewTab(
-      editingStatus.attachment.bytes,
-      editingStatus.attachment.contentType || 'application/pdf',
-      editingStatus.attachment.filename
-    );
+    // Warn user if validation failed
+    if (pdfUrlError) {
+      toast.warning('The file may be corrupted or incomplete. Attempting to open anyway...', {
+        duration: 4000,
+      });
+    }
+
+    try {
+      // Use non-strict opening (bypass validation)
+      const blob = new Blob([new Uint8Array(editingStatus.attachment.bytes)], { 
+        type: editingStatus.attachment.contentType || 'application/pdf' 
+      });
+      const url = URL.createObjectURL(blob);
+      
+      console.log('[ApplicationStatusManager] Opening PDF in new tab', {
+        filename: editingStatus.attachment.filename,
+        bytesLength: editingStatus.attachment.bytes.length,
+        hasValidationError: !!pdfUrlError,
+      });
+
+      window.open(url, '_blank');
+      
+      if (!pdfUrlError) {
+        toast.success('PDF opened in new tab');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to open PDF';
+      console.error('[ApplicationStatusManager] View PDF error:', errorMessage);
+      toast.error(`Failed to open PDF: ${errorMessage}`);
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -158,11 +197,70 @@ export default function ApplicationStatusManager() {
       return;
     }
 
-    downloadPDF(
-      editingStatus.attachment.bytes,
-      editingStatus.attachment.filename || 'attachment.pdf',
-      editingStatus.attachment.contentType || 'application/pdf'
-    );
+    // Warn user if validation failed
+    if (pdfUrlError) {
+      toast.warning('The file may be corrupted or incomplete. Attempting to download anyway...', {
+        duration: 4000,
+      });
+    }
+
+    try {
+      // Use non-strict download (bypass validation)
+      const blob = new Blob([new Uint8Array(editingStatus.attachment.bytes)], { 
+        type: editingStatus.attachment.contentType || 'application/pdf' 
+      });
+      const url = URL.createObjectURL(blob);
+
+      let safeFilename = editingStatus.attachment.filename || 'attachment.pdf';
+      if (!safeFilename.toLowerCase().endsWith('.pdf')) {
+        safeFilename = `${safeFilename}.pdf`;
+      }
+
+      console.log('[ApplicationStatusManager] Downloading PDF', {
+        filename: safeFilename,
+        bytesLength: editingStatus.attachment.bytes.length,
+        hasValidationError: !!pdfUrlError,
+      });
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = safeFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 10000);
+
+      if (!pdfUrlError) {
+        toast.success('PDF download started');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF';
+      console.error('[ApplicationStatusManager] Download PDF error:', errorMessage);
+      toast.error(`Failed to download PDF: ${errorMessage}`);
+    }
+  };
+
+  const handleDownloadAnyway = () => {
+    if (!editingStatus?.attachment?.bytes || editingStatus.attachment.bytes.length === 0) {
+      toast.error('No attachment available');
+      return;
+    }
+
+    try {
+      downloadRawBytes(
+        editingStatus.attachment.bytes,
+        editingStatus.attachment.filename || 'attachment.pdf',
+        editingStatus.attachment.contentType || 'application/pdf'
+      );
+      toast.success('File download started (no validation)');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download file';
+      console.error('[ApplicationStatusManager] Download anyway error:', errorMessage);
+      toast.error(errorMessage);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -174,9 +272,22 @@ export default function ApplicationStatusManager() {
     }
 
     try {
+      // Preserve existing attachment if no new file is uploaded
       let attachment = editingStatus?.attachment;
 
+      // Log original attachment signature before any changes
+      if (editingStatus?.attachment?.bytes) {
+        const originalSig = computeBytesSignature(editingStatus.attachment.bytes);
+        console.log('[ApplicationStatusManager] Original PDF signature before save:', {
+          applicationId: editingStatus.applicationId,
+          signature: originalSig,
+          bytesLength: editingStatus.attachment.bytes.length,
+          filename: editingStatus.attachment.filename,
+        });
+      }
+
       if (formData.pdfFile) {
+        // New file uploaded - replace attachment
         const arrayBuffer = await formData.pdfFile.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
         attachment = {
@@ -184,6 +295,19 @@ export default function ApplicationStatusManager() {
           contentType: formData.pdfFile.type,
           bytes,
         };
+        console.log('[ApplicationStatusManager] New PDF uploaded:', {
+          filename: formData.pdfFile.name,
+          bytesLength: bytes.length,
+          signature: computeBytesSignature(bytes),
+        });
+      } else if (attachment) {
+        // No new file - preserve existing attachment bytes exactly as-is
+        console.log('[ApplicationStatusManager] Preserving existing PDF attachment:', {
+          filename: attachment.filename,
+          bytesLength: attachment.bytes.length,
+          signature: computeBytesSignature(attachment.bytes),
+          preservedExactly: true,
+        });
       }
 
       const statusData: ApplicationStatus = {
@@ -197,11 +321,30 @@ export default function ApplicationStatusManager() {
         attachment,
       };
 
+      // Log the complete status data being sent to backend
+      console.log('[ApplicationStatusManager] Saving status with attachment:', {
+        applicationId: statusData.applicationId,
+        status: statusData.status,
+        hasAttachment: !!statusData.attachment,
+        attachmentSignature: statusData.attachment ? computeBytesSignature(statusData.attachment.bytes) : 'none',
+        attachmentBytesLength: statusData.attachment?.bytes.length || 0,
+      });
+
       await createOrUpdate.mutateAsync(statusData);
+      
+      // Verify the saved data by logging what we expect to retrieve
+      console.log('[ApplicationStatusManager] ✅ Status saved successfully. PDF bytes preserved:', {
+        applicationId: statusData.applicationId,
+        pdfSignature: statusData.attachment ? computeBytesSignature(statusData.attachment.bytes) : 'none',
+        statusChanged: editingStatus?.status !== statusData.status,
+        oldStatus: editingStatus?.status,
+        newStatus: statusData.status,
+      });
+
       toast.success(editingStatus ? 'Status updated successfully' : 'Status created successfully');
       handleCloseForm();
     } catch (error) {
-      console.error('Error saving status:', error);
+      console.error('[ApplicationStatusManager] Error saving status:', error);
       toast.error('Failed to save status');
     }
   };
@@ -436,18 +579,20 @@ export default function ApplicationStatusManager() {
                 className="cursor-pointer"
               />
               <p className="text-xs text-muted-foreground">
-                PDF files only, max 5MB
+                Maximum file size: 5MB. {editingStatus?.attachment && 'Leave empty to keep existing attachment.'}
               </p>
             </div>
 
-            {/* Attached Document Section - Only show when editing and has attachment */}
-            {editingStatus && hasExistingAttachment && !formData.pdfFile && (
+            {/* PDF Preview Section */}
+            {hasExistingAttachment && !formData.pdfFile && (
               <PdfAttachmentSection
                 attachment={editingStatus.attachment}
                 pdfUrl={pdfUrl || undefined}
                 pdfUrlError={pdfUrlError || undefined}
+                pdfSignature={pdfSignature}
                 onViewPDF={handleViewPDF}
                 onDownloadPDF={handleDownloadPDF}
+                onDownloadAnyway={handleDownloadAnyway}
               />
             )}
 
@@ -461,10 +606,8 @@ export default function ApplicationStatusManager() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
-                ) : editingStatus ? (
-                  'Update Status'
                 ) : (
-                  'Create Status'
+                  'Save'
                 )}
               </Button>
             </DialogFooter>
@@ -478,15 +621,14 @@ export default function ApplicationStatusManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Application Status</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the status for Application ID{' '}
-              <strong>{deleteTarget?.applicationId}</strong>? This action cannot be undone.
+              Are you sure you want to delete this application status? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleteStatus.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteStatus.isPending ? (

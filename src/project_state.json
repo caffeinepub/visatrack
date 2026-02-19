@@ -1,41 +1,49 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Build an approval flow where the PDF is visible and can be viewed and downloaded during approval.",
-  "architectural_notes": [
-    "Ensure approval workflow includes attachment/PDF handling that supports in-browser viewing and file download."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [
-    "PDF attachment is not currently showing on the approval screen (users cannot view/download during approval)."
+    "PDF display issue persists after version 40 deployment"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-on-the-approval-ui-application-status-management-when-an-application-status-has-a-pdf-attachment-display-an-inline-pdf-preview-and-provide-explicit-view-pdf-and-download-pdf-actions-so-approvers-can-reliably-view-and-download-the-attached-document-during-approval",
-      "title": "On the approval UI (Application Status Management), when an application status has a PDF attachment, display an inline PDF preview and provide explicit “View PDF” and “Download PDF” actions so approvers can reliably view and download the attached document during approval.",
+      "id": "feature-investigate-and-diagnose-why-pdf-attachments-in-approved-application-statuses-are-not-displaying-correctly-despite-previous-attempts-to-fix-the-issue-in-versions-39-40",
+      "title": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-public-approval-result-screen-australian-visa-status-check-continues-to-render-the-pdf-attachment-section-with-a-preview-when-available-and-always-provides-view-and-download-actions-for-the-returned-attachment-bytes",
-      "title": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
+      "id": "feature-fix-the-pdfattachmentsection-component-to-reliably-display-approved-application-pdfs-by-ensuring-blob-urls-are-correctly-generated-from-valid-pdf-bytes-and-iframes-can-render-them",
+      "title": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
       "reqIds": [
-        "REQ-2"
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-comprehensive-error-logging-to-track-the-complete-pdf-data-flow-from-backend-retrieval-through-blob-url-creation-to-iframe-rendering-including-validation-results-at-each-step",
+      "title": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
-      "id": "AR-1",
-      "summary": "On the approval screen, display the PDF so approvers can view it and download it.",
-      "reqIds": [],
+      "id": "AR-2",
+      "summary": "Ensure that when an application status is approved, the PDF attachment bytes stored in the backend are valid and complete PDF data",
+      "reqIds": [
+        "REQ-2"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Visa Approval Portal",
+  "projectName": "Fix persistent PDF display issue in approved applications",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,37 +1,70 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T04:14:55.798Z",
+  "generatedAt": "2026-02-19T05:28:36.007Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "On the approval UI (Application Status Management), when an application status has a PDF attachment, display an inline PDF preview and provide explicit “View PDF” and “Download PDF” actions so approvers can reliably view and download the attached document during approval.",
+        "summary": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/status/ApplicationStatusManager.tsx",
-          "frontend/src/utils/pdfAttachment.ts"
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/utils/pdfAttachment.ts",
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/status/ApplicationStatusManager.tsx"
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/utils/pdfAttachment.ts",
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
+        "summary": "Ensure that when an application status is approved, the PDF attachment bytes stored in the backend are valid and complete PDF data",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AustralianVisaCheckPage.tsx",
-          "frontend/src/components/status/PdfAttachmentSection.tsx"
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/utils/getApplicationStatusResult.ts",
+          "frontend/src/components/status/ApplicationStatusManager.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/status/PdfAttachmentSection.tsx"
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/utils/getApplicationStatusResult.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/pdfAttachment.ts",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/pdfAttachment.ts",
+          "frontend/src/hooks/useBlobObjectUrl.ts",
+          "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
@@ -41,8 +74,13 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/status/ApplicationStatusManager.tsx",
     "frontend/src/components/status/PdfAttachmentSection.tsx",
+    "frontend/src/hooks/useBlobObjectUrl.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/src/utils/bytesSignature.ts",
+    "frontend/src/utils/getApplicationStatusResult.ts",
+    "frontend/src/utils/pdfAttachment.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

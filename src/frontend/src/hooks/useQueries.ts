@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
-import type { VisaRecord, UserProfile, ApplicationStatus } from '../backend';
-import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
-import { normalizeApplicationStatusResult } from '../utils/getApplicationStatusResult';
+import type { VisaRecord, ApplicationStatus, UserProfile } from '../backend';
+import { getApplicationStatusResult } from '../utils/getApplicationStatusResult';
+import { getAnonymousActor } from '../utils/anonymousActor';
 
+// ====== User Profile Queries ======
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
-  const { identity } = useInternetIdentity();
 
   const query = useQuery<UserProfile | null>({
     queryKey: ['currentUserProfile'],
@@ -15,7 +14,7 @@ export function useGetCallerUserProfile() {
       if (!actor) throw new Error('Actor not available');
       return actor.getCallerUserProfile();
     },
-    enabled: !!actor && !actorFetching && !!identity,
+    enabled: !!actor && !actorFetching,
     retry: false,
   });
 
@@ -41,6 +40,7 @@ export function useSaveCallerUserProfile() {
   });
 }
 
+// ====== Visa Record Queries ======
 export function useGetVisaRecords() {
   const { actor, isFetching } = useActor();
 
@@ -115,58 +115,7 @@ export function useGetUpcomingReminders() {
   });
 }
 
-export function useCheckApplicationStatus() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async ({
-      applicationId,
-      applicantEmail,
-    }: {
-      applicationId: string;
-      applicantEmail: string;
-    }) => {
-      console.log('[useCheckApplicationStatus] Mutation called', {
-        actorPresent: !!actor,
-        applicationId,
-        applicantEmail,
-      });
-
-      if (!actor) {
-        console.error('[useCheckApplicationStatus] Actor not available at mutation time');
-        throw new Error('Connection not ready. Please wait a moment and try again.');
-      }
-
-      const normalized = normalizeApplicationKey(applicationId, applicantEmail);
-      
-      console.log('[useCheckApplicationStatus] Calling backend with normalized key:', normalized);
-
-      try {
-        const rawResult = await actor.getApplicationStatus(
-          normalized.applicationId,
-          normalized.applicantEmail
-        );
-
-        console.log('[useCheckApplicationStatus] Raw backend response:', rawResult);
-
-        const normalizedResult = normalizeApplicationStatusResult(rawResult);
-
-        console.log('[useCheckApplicationStatus] Normalized result:', normalizedResult);
-
-        return normalizedResult;
-      } catch (error) {
-        console.error('[useCheckApplicationStatus] Backend call failed:', {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorName: error instanceof Error ? error.name : undefined,
-          errorStack: error instanceof Error ? error.stack : undefined,
-        });
-        throw error;
-      }
-    },
-  });
-}
-
+// ====== Application Status Queries ======
 export function useGetAllApplicationStatuses() {
   const { actor, isFetching } = useActor();
 
@@ -187,16 +136,7 @@ export function useCreateOrUpdateApplicationStatus() {
   return useMutation({
     mutationFn: async (status: ApplicationStatus) => {
       if (!actor) throw new Error('Actor not available');
-      
-      const normalized = normalizeApplicationKey(status.applicationId, status.applicantEmail);
-      
-      const normalizedStatus: ApplicationStatus = {
-        ...status,
-        applicationId: normalized.applicationId,
-        applicantEmail: normalized.applicantEmail,
-      };
-      
-      return actor.createOrUpdateApplicationStatus(normalizedStatus);
+      return actor.createOrUpdateApplicationStatus(status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicationStatuses'] });
@@ -209,24 +149,83 @@ export function useDeleteApplicationStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      applicationId,
-      applicantEmail,
-    }: {
-      applicationId: string;
-      applicantEmail: string;
-    }) => {
+    mutationFn: async ({ applicationId, applicantEmail }: { applicationId: string; applicantEmail: string }) => {
       if (!actor) throw new Error('Actor not available');
-      
-      const normalized = normalizeApplicationKey(applicationId, applicantEmail);
-      
-      return actor.deleteApplicationStatus(
-        normalized.applicationId,
-        normalized.applicantEmail
-      );
+      return actor.deleteApplicationStatus(applicationId, applicantEmail);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applicationStatuses'] });
     },
+  });
+}
+
+/**
+ * Query hook for checking application status (supports both authenticated and anonymous users).
+ * Uses anonymous actor fallback to allow public status checks without authentication.
+ */
+export function useCheckApplicationStatus(applicationId: string, applicantEmail: string, enabled: boolean = false) {
+  const { actor: authenticatedActor, isFetching: actorFetching } = useActor();
+
+  return useQuery<ApplicationStatus | null>({
+    queryKey: ['checkApplicationStatus', applicationId, applicantEmail],
+    queryFn: async () => {
+      const timestamp = new Date().toISOString();
+      console.log(`🔍 [useCheckApplicationStatus] ${timestamp} Query function called:`, {
+        applicationId,
+        applicantEmail,
+        hasAuthenticatedActor: !!authenticatedActor,
+        actorFetching,
+      });
+
+      // Try authenticated actor first, fall back to anonymous
+      let actor = authenticatedActor;
+      if (!actor) {
+        console.log(`🔍 [useCheckApplicationStatus] ${timestamp} No authenticated actor, using anonymous actor`);
+        actor = await getAnonymousActor();
+      }
+
+      if (!actor) {
+        console.error(`❌ [useCheckApplicationStatus] ${timestamp} No actor available (authenticated or anonymous)`);
+        throw new Error('Unable to connect to backend');
+      }
+
+      console.log(`🔍 [useCheckApplicationStatus] ${timestamp} Calling backend getApplicationStatus...`);
+      const rawResult = await actor.getApplicationStatus(applicationId, applicantEmail);
+      
+      console.log(`🔍 [useCheckApplicationStatus] ${timestamp} Raw backend response:`, {
+        hasResult: !!rawResult,
+        resultType: rawResult ? typeof rawResult : 'null',
+        applicationId: rawResult?.applicationId,
+        status: rawResult?.status,
+        hasAttachment: !!rawResult?.attachment,
+        attachmentBytesLength: rawResult?.attachment?.bytes?.length || 0,
+        attachmentBytesType: rawResult?.attachment?.bytes ? (rawResult.attachment.bytes instanceof Uint8Array ? 'Uint8Array' : Array.isArray(rawResult.attachment.bytes) ? 'Array' : typeof rawResult.attachment.bytes) : 'undefined',
+      });
+
+      if (rawResult?.attachment?.bytes) {
+        const bytes = rawResult.attachment.bytes instanceof Uint8Array ? rawResult.attachment.bytes : new Uint8Array(rawResult.attachment.bytes);
+        console.log(`🔍 [useCheckApplicationStatus] ${timestamp} Attachment bytes analysis:`, {
+          firstTenBytes: Array.from(bytes.slice(0, 10)),
+          lastTenBytes: Array.from(bytes.slice(-10)),
+          headerString: String.fromCharCode(...Array.from(bytes.slice(0, 5))),
+        });
+      }
+
+      const normalizedResult = getApplicationStatusResult(rawResult);
+      
+      console.log(`🔍 [useCheckApplicationStatus] ${timestamp} Normalized result:`, {
+        hasResult: !!normalizedResult,
+        applicationId: normalizedResult?.applicationId,
+        status: normalizedResult?.status,
+        hasAttachment: !!normalizedResult?.attachment,
+        attachmentBytesLength: normalizedResult?.attachment?.bytes?.length || 0,
+        attachmentBytesType: normalizedResult?.attachment?.bytes ? (normalizedResult.attachment.bytes instanceof Uint8Array ? 'Uint8Array' : 'other') : 'undefined',
+      });
+
+      return normalizedResult;
+    },
+    enabled: enabled && !actorFetching,
+    retry: false,
+    staleTime: 0,
   });
 }

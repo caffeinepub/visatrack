@@ -5,46 +5,89 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { Loader2, Search, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useCheckApplicationStatus } from '../hooks/useQueries';
-import { useActorReadiness } from '../hooks/useActorReadiness';
 import { useBlobObjectUrl } from '../hooks/useBlobObjectUrl';
 import PdfAttachmentSection from '../components/status/PdfAttachmentSection';
 import type { ApplicationStatus } from '../backend';
 import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
-import { openPDFInNewTab, downloadPDF } from '../utils/pdfAttachment';
+import { downloadRawBytes } from '../utils/pdfAttachment';
+import { getApplicationStatusResult } from '../utils/getApplicationStatusResult';
+import { toast } from 'sonner';
+import { parseStatusCheckError, type StatusCheckError } from '../utils/statusCheckError';
+import { computeBytesSignature } from '../utils/bytesSignature';
 
 export default function AustralianVisaCheckPage() {
   const [applicationId, setApplicationId] = useState('');
   const [applicantEmail, setApplicantEmail] = useState('');
-  const [result, setResult] = useState<ApplicationStatus | null | undefined>(undefined);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [isConnectionError, setIsConnectionError] = useState(false);
+  const [searchParams, setSearchParams] = useState<{ applicationId: string; applicantEmail: string } | null>(null);
+  const [submissionError, setSubmissionError] = useState<StatusCheckError | null>(null);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [approvalDate, setApprovalDate] = useState<string>('');
 
-  const checkStatus = useCheckApplicationStatus();
-  const { isInitializing, isReady, hasError: actorInitError } = useActorReadiness();
+  // Use the query hook with search params
+  const checkStatus = useCheckApplicationStatus(
+    searchParams?.applicationId || '',
+    searchParams?.applicantEmail || '',
+    !!searchParams
+  );
 
-  // Only create Blob URL when we have valid attachment data
-  const hasValidAttachment = result?.attachment && result.attachment.bytes && result.attachment.bytes.length > 0;
-  const { url: pdfUrl, error: pdfUrlError } = useBlobObjectUrl(
-    hasValidAttachment ? result.attachment?.bytes : undefined,
-    hasValidAttachment ? (result.attachment?.contentType || 'application/pdf') : undefined
+  // Get the result from the query
+  const result = checkStatus.data;
+
+  // Normalize result before using it
+  const normalizedResult = result !== undefined ? getApplicationStatusResult(result) : undefined;
+
+  // Only create Blob URL when we have valid attachment data (use normalized result)
+  const hasValidAttachment = normalizedResult?.attachment && normalizedResult.attachment.bytes && normalizedResult.attachment.bytes.length > 0;
+  const { url: pdfUrl, error: pdfUrlError, signature: pdfSignature } = useBlobObjectUrl(
+    hasValidAttachment ? normalizedResult.attachment?.bytes : undefined,
+    hasValidAttachment ? (normalizedResult.attachment?.contentType || 'application/pdf') : undefined
   );
 
   // Developer diagnostics for attachment presence
   useEffect(() => {
-    if (result && result !== null) {
+    if (normalizedResult && normalizedResult !== null) {
+      const attachmentSig = normalizedResult.attachment?.bytes 
+        ? computeBytesSignature(normalizedResult.attachment.bytes)
+        : 'none';
+      
       console.log('[VisaCheck] Result attachment diagnostics:', {
-        hasAttachment: !!result.attachment,
-        contentType: result.attachment?.contentType,
-        bytesLength: result.attachment?.bytes ? result.attachment.bytes.length : 0,
-        filename: result.attachment?.filename,
+        hasAttachment: !!normalizedResult.attachment,
+        contentType: normalizedResult.attachment?.contentType,
+        bytesLength: normalizedResult.attachment?.bytes ? normalizedResult.attachment.bytes.length : 0,
+        filename: normalizedResult.attachment?.filename,
         pdfUrl: pdfUrl ? 'created' : 'null',
         pdfUrlError,
+        pdfSignature,
+        attachmentSignature: attachmentSig,
+        status: normalizedResult.status,
+        isApproved: normalizedResult.status.toLowerCase().includes('approved'),
       });
     }
-  }, [result, pdfUrl, pdfUrlError]);
+  }, [normalizedResult, pdfUrl, pdfUrlError, pdfSignature]);
+
+  // Update approval date when result changes and status indicates approval
+  useEffect(() => {
+    if (normalizedResult && normalizedResult.status.toLowerCase().includes('approved')) {
+      const newApprovalDate = new Date().toLocaleDateString('en-AU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      setApprovalDate(newApprovalDate);
+      console.log('[VisaCheck] Approval date set:', newApprovalDate);
+    }
+  }, [normalizedResult]);
+
+  // Handle query errors
+  useEffect(() => {
+    if (checkStatus.isError && checkStatus.error) {
+      console.error('[VisaCheck] Status check error:', checkStatus.error);
+      const parsedError = parseStatusCheckError(checkStatus.error);
+      setSubmissionError(parsedError);
+    }
+  }, [checkStatus.isError, checkStatus.error]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,324 +96,375 @@ export default function AustralianVisaCheckPage() {
       return;
     }
 
-    // Check if actor is ready
-    if (!isReady) {
-      console.warn('[VisaCheck] Submit blocked: actor not ready', {
-        isInitializing,
-        isReady,
-        actorInitError,
-      });
-      setSubmissionError('Connection is still initializing. Please wait a moment and try again.');
-      setIsConnectionError(true);
-      return;
-    }
-
-    // Reset state and show processing immediately
     setSubmissionError(null);
-    setIsConnectionError(false);
-    setResult(undefined);
-    setHasSubmitted(true);
+    setApprovalDate('');
 
     const normalized = normalizeApplicationKey(applicationId, applicantEmail);
-    
-    console.log('[VisaCheck] Submitting check:', {
-      input: { applicationId, applicantEmail },
-      normalized,
-      actorReady: isReady,
+
+    console.log('[VisaCheck] Submitting status check:', normalized);
+
+    // Trigger the query by setting search params
+    setSearchParams({
+      applicationId: normalized.applicationId,
+      applicantEmail: normalized.applicantEmail,
     });
+  };
+
+  // Log PDF signature when result is available
+  useEffect(() => {
+    if (result?.attachment?.bytes) {
+      const sig = computeBytesSignature(result.attachment.bytes);
+      console.log('[VisaCheck] Retrieved PDF signature:', {
+        applicationId: result.applicationId,
+        signature: sig,
+        bytesLength: result.attachment.bytes.length,
+        filename: result.attachment.filename,
+        status: result.status,
+      });
+    }
+  }, [result]);
+
+  // Handler for viewing PDF in new tab - now attempts even with validation errors
+  const handleViewPDF = () => {
+    if (!normalizedResult?.attachment) {
+      toast.error('No attachment available');
+      return;
+    }
+
+    // Warn user if validation failed
+    if (pdfUrlError) {
+      toast.warning('The file may be corrupted or incomplete. Attempting to open anyway...', {
+        duration: 4000,
+      });
+    }
 
     try {
-      const status = await checkStatus.mutateAsync({
-        applicationId,
-        applicantEmail,
+      // Use non-strict opening (bypass validation)
+      // Create new Uint8Array to ensure TypeScript compatibility with Blob constructor
+      const blob = new Blob([new Uint8Array(normalizedResult.attachment.bytes)], { 
+        type: normalizedResult.attachment.contentType || 'application/pdf' 
       });
+      const url = URL.createObjectURL(blob);
       
-      console.log('[VisaCheck] Response received:', status);
-      
-      // Ensure we always set a valid result (null for no match, object for found)
-      setResult(status ?? null);
-    } catch (error) {
-      console.error('[VisaCheck] Error checking status:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorName: error instanceof Error ? error.name : undefined,
+      console.log('[VisaCheck] Opening PDF in new tab (non-strict)', {
+        filename: normalizedResult.attachment.filename,
+        bytesLength: normalizedResult.attachment.bytes.length,
+        signature: computeBytesSignature(normalizedResult.attachment.bytes),
+        hasValidationError: !!pdfUrlError,
       });
 
-      // Distinguish connection/setup errors from other errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('Connection not ready') || errorMessage.includes('Actor not available')) {
-        setSubmissionError('Connection issue detected. Please refresh the page and try again.');
-        setIsConnectionError(true);
-      } else {
-        setSubmissionError('Unable to check application status. Please try again later.');
-        setIsConnectionError(false);
+      window.open(url, '_blank');
+      
+      if (!pdfUrlError) {
+        toast.success('PDF opened in new tab');
       }
-      setResult(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to open PDF';
+      console.error('[VisaCheck] View PDF error:', errorMessage);
+      toast.error(`Failed to open PDF: ${errorMessage}`);
     }
   };
 
-  const handleReset = () => {
-    setApplicationId('');
-    setApplicantEmail('');
-    setResult(undefined);
-    setHasSubmitted(false);
-    setSubmissionError(null);
-    setIsConnectionError(false);
-    checkStatus.reset();
-  };
-
-  const handleViewPDF = () => {
-    if (!result?.attachment?.bytes || result.attachment.bytes.length === 0) {
-      console.error('[VisaCheck] Cannot view PDF: no bytes available');
-      return;
-    }
-    
-    openPDFInNewTab(
-      result.attachment.bytes,
-      result.attachment.contentType || 'application/pdf',
-      result.attachment.filename
-    );
-  };
-
+  // Handler for downloading PDF - now attempts even with validation errors
   const handleDownloadPDF = () => {
-    if (!result?.attachment?.bytes || result.attachment.bytes.length === 0) {
-      console.error('[VisaCheck] Cannot download PDF: no bytes available');
+    if (!normalizedResult?.attachment) {
+      toast.error('No attachment available');
       return;
     }
-    
-    downloadPDF(
-      result.attachment.bytes,
-      result.attachment.filename || 'attachment.pdf',
-      result.attachment.contentType || 'application/pdf'
-    );
+
+    // Warn user if validation failed
+    if (pdfUrlError) {
+      toast.warning('The file may be corrupted or incomplete. Attempting to download anyway...', {
+        duration: 4000,
+      });
+    }
+
+    try {
+      // Use non-strict download (bypass validation)
+      // Create new Uint8Array to ensure TypeScript compatibility with Blob constructor
+      const blob = new Blob([new Uint8Array(normalizedResult.attachment.bytes)], { 
+        type: normalizedResult.attachment.contentType || 'application/pdf' 
+      });
+      const url = URL.createObjectURL(blob);
+
+      let safeFilename = normalizedResult.attachment.filename || 'attachment.pdf';
+      if (!safeFilename.toLowerCase().endsWith('.pdf')) {
+        safeFilename = `${safeFilename}.pdf`;
+      }
+
+      console.log('[VisaCheck] Downloading PDF (non-strict)', {
+        filename: safeFilename,
+        bytesLength: normalizedResult.attachment.bytes.length,
+        signature: computeBytesSignature(normalizedResult.attachment.bytes),
+        hasValidationError: !!pdfUrlError,
+      });
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = safeFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 10000);
+
+      if (!pdfUrlError) {
+        toast.success('PDF download started');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF';
+      console.error('[VisaCheck] Download PDF error:', errorMessage);
+      toast.error(`Failed to download PDF: ${errorMessage}`);
+    }
   };
 
-  const getTodayDate = () => {
-    return new Date().toLocaleDateString('en-AU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  // Handler for downloading raw bytes without validation
+  const handleDownloadAnyway = () => {
+    if (!normalizedResult?.attachment) {
+      toast.error('No attachment available');
+      return;
+    }
+
+    try {
+      downloadRawBytes(
+        normalizedResult.attachment.bytes,
+        normalizedResult.attachment.filename,
+        normalizedResult.attachment.contentType || 'application/pdf'
+      );
+      toast.success('File download started (no validation)');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download file';
+      console.error('[VisaCheck] Download anyway error:', errorMessage);
+      toast.error(errorMessage);
+    }
   };
 
-  // Determine what to show in results
-  const showInitializing = isInitializing && hasSubmitted && result === undefined && !submissionError;
-  const showProcessing = !isInitializing && hasSubmitted && result === undefined && !submissionError && checkStatus.isPending;
-  const showConnectionError = hasSubmitted && isConnectionError && submissionError !== null;
-  const showError = hasSubmitted && !isConnectionError && submissionError !== null;
-  const showNoMatch = hasSubmitted && result === null && !submissionError;
-  const showFound = hasSubmitted && result !== null && result !== undefined && !submissionError;
-
-  // Disable submit if actor is not ready or form is invalid
-  const isSubmitDisabled = !isReady || checkStatus.isPending || !applicationId.trim() || !applicantEmail.trim();
+  const isLoading = checkStatus.isPending || checkStatus.isFetching;
+  const showResult = searchParams && !isLoading && normalizedResult !== undefined;
+  const isApproved = normalizedResult?.status.toLowerCase().includes('approved');
 
   return (
     <AppLayout>
-      <div className="container px-4 py-8 md:px-6 md:py-12 max-w-4xl mx-auto">
-        <div className="flex flex-col gap-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50/30">
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Australian Visa Status Check</h1>
-            <p className="text-muted-foreground">
-              Enter your application details to check your visa application status
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-blue-900 mb-3">
+              Australian Visa Status Check
+            </h1>
+            <p className="text-blue-700 text-lg">
+              Enter your application details to check your visa status
             </p>
           </div>
 
-          {/* Check Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Check Application Status</CardTitle>
-              <CardDescription>
-                Please enter your Application ID and the email address used for your application
+          {/* Search Form */}
+          <Card className="shadow-lg border-blue-200 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="border-b border-blue-100 bg-gradient-to-r from-blue-50 to-transparent">
+              <CardTitle className="text-blue-900">Check Application Status</CardTitle>
+              <CardDescription className="text-blue-700">
+                Please provide your application ID and email address
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="applicationId">Application ID</Label>
-                    <Input
-                      id="applicationId"
-                      placeholder="e.g., 4906670766"
-                      value={applicationId}
-                      onChange={(e) => setApplicationId(e.target.value)}
-                      required
-                      disabled={!isReady || checkStatus.isPending}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="applicantEmail">Applicant Email</Label>
-                    <Input
-                      id="applicantEmail"
-                      type="email"
-                      placeholder="e.g., jr321134@gmail.com"
-                      value={applicantEmail}
-                      onChange={(e) => setApplicantEmail(e.target.value)}
-                      required
-                      disabled={!isReady || checkStatus.isPending}
-                    />
-                  </div>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="applicationId" className="text-blue-900 font-medium">
+                    Application ID
+                  </Label>
+                  <Input
+                    id="applicationId"
+                    type="text"
+                    placeholder="e.g., 4906670766"
+                    value={applicationId}
+                    onChange={(e) => setApplicationId(e.target.value)}
+                    required
+                    className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                  />
                 </div>
 
-                {/* Show initializing message if actor is not ready */}
-                {isInitializing && (
-                  <Alert>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <AlertDescription>
-                      Connecting to service...
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="applicantEmail" className="text-blue-900 font-medium">
+                    Applicant Email
+                  </Label>
+                  <Input
+                    id="applicantEmail"
+                    type="email"
+                    placeholder="e.g., your.email@example.com"
+                    value={applicantEmail}
+                    onChange={(e) => setApplicantEmail(e.target.value)}
+                    required
+                    className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                  />
+                </div>
 
-                {/* Show actor initialization error */}
-                {actorInitError && !isInitializing && (
-                  <Alert variant="destructive">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertDescription>
-                      Unable to connect to the service. Please refresh the page and try again.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex gap-3">
-                  <Button
-                    type="submit"
-                    disabled={isSubmitDisabled}
-                    className="flex-1"
-                  >
-                    {checkStatus.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Checking...
-                      </>
-                    ) : isInitializing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Check Status
-                      </>
-                    )}
-                  </Button>
-                  {hasSubmitted && (
-                    <Button type="button" variant="outline" onClick={handleReset}>
-                      Reset
-                    </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading || !applicationId.trim() || !applicantEmail.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 text-lg shadow-md hover:shadow-lg transition-all"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Checking Status...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-5 w-5" />
+                      Check Status
+                    </>
                   )}
-                </div>
+                </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Results - Always show card when submitted */}
-          {hasSubmitted && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Status Result</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {showInitializing && (
-                  <Alert>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <AlertDescription>
-                      Connecting to service...
-                    </AlertDescription>
-                  </Alert>
-                )}
+          {/* Error Display */}
+          {submissionError && (
+            <Card className="mt-6 shadow-lg border-red-300 bg-red-50/80 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                <Alert variant="destructive" className="border-red-400 bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-700" />
+                  <AlertDescription className="text-red-900">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="font-semibold text-base mb-1">{submissionError.category} Error</p>
+                        <p className="text-sm">{submissionError.message}</p>
+                      </div>
 
-                {showProcessing && (
-                  <Alert>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <AlertDescription>
-                      Processing your request...
-                    </AlertDescription>
-                  </Alert>
-                )}
+                      {submissionError.technicalDetails && (
+                        <div className="border-t border-red-300 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                            className="flex items-center gap-2 text-sm font-medium text-red-800 hover:text-red-900 transition-colors"
+                          >
+                            {showTechnicalDetails ? (
+                              <>
+                                <ChevronUp className="h-4 w-4" />
+                                Hide Technical Details
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-4 w-4" />
+                                Show Technical Details
+                              </>
+                            )}
+                          </button>
 
-                {showConnectionError && (
-                  <Alert variant="destructive">
-                    <WifiOff className="h-4 w-4" />
-                    <AlertDescription>
-                      {submissionError}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {showError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {submissionError}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {showNoMatch && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No status found for that Application ID and email. Please check your details and try again.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {showFound && result && (
-                  <div className="space-y-4">
-                    <Alert className="border-primary/50 bg-primary/5">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <AlertDescription className="text-base font-medium">
-                        Application Found
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Applicant Name</p>
-                        <p className="font-medium">{result.applicantName || '—'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Visa Type</p>
-                        <p className="font-medium">{result.visaType || '—'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Application ID</p>
-                        <p className="font-medium">{result.applicationId}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Applicant Email</p>
-                        <p className="font-medium">{result.applicantEmail}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Status</p>
-                        <p className="font-semibold text-lg text-primary">{result.status}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Approval Date</p>
-                        <p className="font-medium">{getTodayDate()}</p>
-                      </div>
+                          {showTechnicalDetails && (
+                            <div className="mt-2 p-3 bg-red-200/50 rounded border border-red-300">
+                              <pre className="text-xs text-red-900 whitespace-pre-wrap break-words font-mono">
+                                {submissionError.technicalDetails}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
 
-                    {result.comments && (
-                      <div className="space-y-1 pt-2 border-t">
-                        <p className="text-sm text-muted-foreground">Additional Comments</p>
-                        <p className="text-sm">{result.comments}</p>
-                      </div>
-                    )}
+          {/* Result Display */}
+          {showResult && normalizedResult && (
+            <Card className="mt-6 shadow-lg border-blue-200 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="border-b border-blue-100 bg-gradient-to-r from-blue-50 to-transparent">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-blue-900 text-2xl">Application Status</CardTitle>
+                    <CardDescription className="text-blue-700 mt-1">
+                      Application ID: {normalizedResult.applicationId}
+                    </CardDescription>
+                  </div>
+                  {isApproved && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                      <CheckCircle2 className="h-5 w-5 text-green-700" />
+                      <span className="text-green-800 font-semibold">Approved</span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 mb-1">Applicant Name</p>
+                    <p className="text-base text-blue-900">{normalizedResult.applicantName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 mb-1">Visa Type</p>
+                    <p className="text-base text-blue-900">{normalizedResult.visaType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 mb-1">Status</p>
+                    <p className="text-base text-blue-900 font-semibold">{normalizedResult.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 mb-1">Last Updated</p>
+                    <p className="text-base text-blue-900">
+                      {new Date(Number(normalizedResult.lastUpdated) / 1_000_000).toLocaleDateString('en-AU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
 
-                    {/* Always render attachment section - it will show "no document" message if needed */}
-                    <PdfAttachmentSection
-                      attachment={result.attachment}
-                      pdfUrl={pdfUrl ?? undefined}
-                      pdfUrlError={pdfUrlError ?? undefined}
-                      onViewPDF={handleViewPDF}
-                      onDownloadPDF={handleDownloadPDF}
-                    />
+                {normalizedResult.comments && (
+                  <div className="pt-4 border-t border-blue-200">
+                    <p className="text-sm font-medium text-blue-700 mb-2">Comments</p>
+                    <p className="text-base text-blue-900">{normalizedResult.comments}</p>
                   </div>
                 )}
+
+                {/* Approval Section with Today's Date */}
+                {isApproved && approvalDate && (
+                  <div className="pt-4 border-t border-blue-200">
+                    <Alert className="border-green-300 bg-green-50">
+                      <CheckCircle2 className="h-5 w-5 text-green-700" />
+                      <AlertDescription className="text-green-900">
+                        <p className="font-semibold text-base mb-1">Visa Approved</p>
+                        <p className="text-sm">
+                          Your visa application has been approved as of <span className="font-semibold">{approvalDate}</span>.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                {/* PDF Attachment Section */}
+                {normalizedResult.attachment && (
+                  <PdfAttachmentSection
+                    attachment={normalizedResult.attachment}
+                    pdfUrl={pdfUrl || undefined}
+                    pdfUrlError={pdfUrlError || undefined}
+                    pdfSignature={pdfSignature}
+                    onViewPDF={handleViewPDF}
+                    onDownloadPDF={handleDownloadPDF}
+                    onDownloadAnyway={handleDownloadAnyway}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No Result Found */}
+          {showResult && !normalizedResult && !submissionError && (
+            <Card className="mt-6 shadow-lg border-amber-300 bg-amber-50/80 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                <Alert className="border-amber-400 bg-amber-100">
+                  <AlertCircle className="h-5 w-5 text-amber-700" />
+                  <AlertDescription className="text-amber-900">
+                    <p className="font-semibold text-base mb-1">No Application Found</p>
+                    <p className="text-sm">
+                      We couldn't find an application with the provided details. Please check your Application ID and email address and try again.
+                    </p>
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
           )}

@@ -1,56 +1,80 @@
 {
   "kind": "build_request",
-  "title": "Show PDF on approval screen with view and download actions",
-  "projectName": "Visa Approval Portal",
-  "priority": "normal",
+  "title": "Fix persistent PDF display issue in approved applications",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "On the approval UI (Application Status Management), when an application status has a PDF attachment, display an inline PDF preview and provide explicit “View PDF” and “Download PDF” actions so approvers can reliably view and download the attached document during approval.",
-      "target": "frontend",
+      "text": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "SHOW THIS PDF ON APPROVAL IT CAN VIEW AND DOWNLOAD"
+          "version 40 is live but still my problem is same"
         ]
       },
       "acceptanceCriteria": [
-        "When editing an Application Status that contains an attachment with non-empty bytes, the approval UI shows an “Attached Document” section containing an inline PDF preview (via a Blob URL) and buttons labeled “View PDF” and “Download PDF”.",
-        "Clicking “View PDF” opens the PDF in a new tab using the attachment bytes, and clicking “Download PDF” downloads the PDF using the attachment bytes and a .pdf filename.",
-        "If the browser cannot render the PDF inline or a Blob URL cannot be created, the UI displays a clear error message and still shows working “View PDF” and “Download PDF” buttons.",
-        "When an Application Status has no attachment (or empty bytes), the approval UI shows a clear “No attached document available for this application.” message and does not show preview/actions."
+        "Root cause of PDF display failure is identified",
+        "Clear understanding of whether the issue is in backend data storage, frontend rendering, or blob URL generation"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the public approval/result screen (Australian Visa Status Check) continues to render the PDF attachment section with a preview (when available) and always provides view and download actions for the returned attachment bytes.",
-      "target": "frontend",
+      "text": "Ensure that when an application status is approved, the PDF attachment bytes stored in the backend are valid and complete PDF data",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "SHOW THIS PDF ON APPROVAL IT CAN VIEW AND DOWNLOAD"
+          "msg-latest"
         ]
       },
       "acceptanceCriteria": [
-        "When a status lookup returns an attachment with non-empty bytes, the Status Result shows the PDF attachment section with an inline preview (if possible) and buttons labeled “View PDF” and “Download PDF”.",
-        "“View PDF” opens a new tab and “Download PDF” downloads the file; both actions work using the bytes returned by the backend.",
-        "When a lookup result has no attachment, the Status Result shows the “No attached document available for this application.” message."
+        "PDF bytes stored in backend pass validation checks (PDF header and EOF markers present)",
+        "Backend logs or returns diagnostic information about PDF data integrity when storing attachments"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ]
+      },
+      "acceptanceCriteria": [
+        "PDF preview iframe displays the complete PDF content when application status is approved",
+        "Console logs show successful blob URL creation and no PDF validation errors",
+        "View and download buttons work correctly for approved application PDFs"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Console logs show PDF byte array length when received from backend",
+        "Console logs show PDF validation results (header check, EOF marker check)",
+        "Console logs show blob URL creation success/failure",
+        "Console logs show iframe load events and any rendering errors"
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (compose existing UI components instead).",
-    "Do not modify immutable hook/bootstrapping files listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/main.tsx).",
-    "Keep all backend logic within the single Motoko actor in backend/main.mo; only add backend changes if strictly required for PDF attachment retrieval."
+    "Do not modify the existing backend schema for ApplicationStatus",
+    "Preserve the current PDF validation logic in pdfAttachment.ts utility",
+    "Maintain compatibility with existing approved application records"
   ],
   "nonGoals": [
-    "Adding third-party PDF viewer libraries or external storage services for PDFs.",
-    "Changing authentication mechanisms (Internet Identity remains the only auth).",
-    "Implementing real-time approval notifications or workflow automation beyond showing/viewing/downloading the existing PDF attachment."
+    "Redesigning the application status approval workflow",
+    "Adding new PDF processing features beyond fixing the display issue",
+    "Changing the authentication or routing system"
   ],
   "imageRequirements": {
     "required": [],
