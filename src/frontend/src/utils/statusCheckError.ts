@@ -1,62 +1,87 @@
 /**
- * Error classification for status check failures
+ * Error parsing utility that maps unknown error values into structured error models
+ * with user-friendly messages, error categories, and raw technical details for debugging.
  */
-export type StatusCheckErrorCategory = 'connection' | 'backend' | 'unknown';
 
 export interface StatusCheckError {
-  /** User-facing error message with actionable guidance */
   message: string;
-  /** Error category for UI handling */
-  category: StatusCheckErrorCategory;
-  /** Raw technical details for debugging */
-  technicalDetails: string;
+  category: 'connection' | 'backend' | 'unknown';
+  rawError: unknown;
 }
 
 /**
- * Maps unknown error values into a structured error model with
- * user-friendly messages and technical details for debugging.
+ * Parses and categorizes errors from application status checks.
+ * Provides user-friendly messages while preserving technical details for debugging.
  */
 export function parseStatusCheckError(error: unknown): StatusCheckError {
-  const technicalDetails = error instanceof Error 
-    ? `${error.name}: ${error.message}\n${error.stack || ''}` 
-    : String(error);
+  const timestamp = new Date().toISOString();
+  
+  console.error(`[${timestamp}] [statusCheckError] Parsing error:`, {
+    errorType: typeof error,
+    errorConstructor: error?.constructor?.name,
+    error,
+  });
 
-  // Connection/initialization errors
+  // Handle Error objects
   if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    
-    if (
-      message.includes('connection not ready') ||
-      message.includes('actor not available') ||
-      message.includes('agent') ||
-      message.includes('fetch') ||
-      message.includes('network')
-    ) {
+    console.error(`[${timestamp}] [statusCheckError] Error instance:`, {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+
+    // Connection errors
+    if (error.message.includes('Unable to connect') || error.message.includes('network') || error.message.includes('fetch')) {
       return {
-        message: 'Unable to connect to the service. Please check your internet connection and try again.',
+        message: 'Unable to connect to the backend service. Please check your internet connection and try again.',
         category: 'connection',
-        technicalDetails,
+        rawError: error,
       };
     }
 
-    // Backend rejection errors (traps, authorization, etc.)
-    if (
-      message.includes('unauthorized') ||
-      message.includes('trap') ||
-      message.includes('rejected')
-    ) {
+    // Backend errors (traps, authorization, etc.)
+    if (error.message.includes('Unauthorized') || error.message.includes('trap') || error.message.includes('does not exist')) {
       return {
-        message: 'The service rejected your request. Please verify your application details and try again.',
+        message: error.message,
         category: 'backend',
-        technicalDetails,
+        rawError: error,
       };
     }
+
+    // Generic error
+    return {
+      message: error.message || 'An unexpected error occurred',
+      category: 'unknown',
+      rawError: error,
+    };
   }
 
-  // Generic fallback
+  // Handle string errors
+  if (typeof error === 'string') {
+    console.error(`[${timestamp}] [statusCheckError] String error:`, error);
+    return {
+      message: error,
+      category: 'unknown',
+      rawError: error,
+    };
+  }
+
+  // Handle object errors with message property
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message: unknown }).message);
+    console.error(`[${timestamp}] [statusCheckError] Object with message:`, message);
+    return {
+      message,
+      category: 'unknown',
+      rawError: error,
+    };
+  }
+
+  // Unknown error type
+  console.error(`[${timestamp}] [statusCheckError] Unknown error type:`, error);
   return {
-    message: 'Unable to check application status. Please try again later.',
+    message: 'An unexpected error occurred while checking application status',
     category: 'unknown',
-    technicalDetails,
+    rawError: error,
   };
 }

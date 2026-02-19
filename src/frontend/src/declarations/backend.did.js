@@ -65,6 +65,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getPDF' : IDL.Func([IDL.Nat], [IDL.Opt(PDFData)], ['query']),
   'getUpcomingReminders' : IDL.Func([], [IDL.Vec(VisaRecord)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -74,6 +75,7 @@ export const idlService = IDL.Service({
   'getVisaRecords' : IDL.Func([], [IDL.Vec(VisaRecord)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'storePDF' : IDL.Func([PDFData], [IDL.Nat], []),
   'updateVisaRecord' : IDL.Func([IDL.Text, VisaRecord], [], []),
 });
 
@@ -137,6 +139,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getPDF' : IDL.Func([IDL.Nat], [IDL.Opt(PDFData)], ['query']),
     'getUpcomingReminders' : IDL.Func([], [IDL.Vec(VisaRecord)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -146,6 +149,7 @@ export const idlFactory = ({ IDL }) => {
     'getVisaRecords' : IDL.Func([], [IDL.Vec(VisaRecord)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'storePDF' : IDL.Func([PDFData], [IDL.Nat], []),
     'updateVisaRecord' : IDL.Func([IDL.Text, VisaRecord], [], []),
   });
 };

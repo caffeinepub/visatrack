@@ -1,98 +1,28 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix persistent PDF display issue in approved applications",
+  "title": "Remove PDF column from application status display",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
+      "summary": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
       "acceptanceCriteria": [
-        "Root cause of PDF display failure is identified",
-        "Clear understanding of whether the issue is in backend data storage, frontend rendering, or blob URL generation"
+        "The PDF column is no longer visible in the application status table/list",
+        "Users cannot see or download PDF attachments from the UI",
+        "PDF data continues to be stored in the backend when creating/editing status entries",
+        "The PdfAttachmentSection component is not rendered",
+        "No PDF-related UI elements appear in the ApplicationStatusManager component"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/status/PdfAttachmentSection.tsx",
+          "path": "frontend/src/components/status/ApplicationStatusManager.tsx",
           "operation": "modify",
-          "description": "Add comprehensive diagnostic logging throughout the PDF display pipeline to identify where the failure occurs: log when component mounts, when pdfBytes are received (with length), when validation runs (with results), when blob URL is generated (with success/failure), and when iframe attempts to load. Include timestamp prefixes for all diagnostic logs."
-        },
-        {
-          "path": "frontend/src/hooks/useBlobObjectUrl.ts",
-          "operation": "modify",
-          "description": "Enhance blob URL creation hook with detailed logging for PDF processing: log the input bytes signature and length, validation step results (header check, EOF marker check), blob creation success/failure with URL output, and any errors during the process. Add logs to track when URLs are created vs reused from cache."
-        },
-        {
-          "path": "frontend/src/utils/pdfAttachment.ts",
-          "operation": "modify",
-          "description": "Add verbose logging to PDF validation functions: log the byte array length before validation, log header bytes in hex format for inspection, log EOF marker search results with position found (if any), and log the final validation result. This will help identify if PDFs are corrupted at the byte level."
+          "description": "Remove all PDF-related UI elements from the ApplicationStatusManager component including: (1) Remove the PdfAttachmentSection component rendering from the status display table/cards, (2) Remove PDF upload input fields from the create/edit forms, (3) Remove all PDF download/view buttons and links, (4) Keep the backend PDF storage logic intact by maintaining the attachment field in status objects when calling createOrUpdateApplicationStatus, (5) Remove PDF file state management from the component (useState for PDF files), (6) Remove PDF-related form handlers and validation, (7) Ensure the component continues to function normally for all other fields (status, applicant name, email, visa type, comments)"
         },
         {
           "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "operation": "modify",
-          "description": "Add diagnostic logging when application status is fetched: log the raw response structure, whether attachment field exists, the attachment bytes length if present, and any normalization that occurs. This will help determine if the issue is in data retrieval or downstream processing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
-      "acceptanceCriteria": [
-        "PDF preview iframe displays the complete PDF content when application status is approved",
-        "Console logs show successful blob URL creation and no PDF validation errors",
-        "View and download buttons work correctly for approved application PDFs"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/status/PdfAttachmentSection.tsx",
-          "operation": "modify",
-          "description": "Implement robust PDF display logic with enhanced error handling: ensure pdfBytes are properly converted to Uint8Array before processing, add fallback rendering strategy if iframe fails (display file metadata and download option), implement iframe onLoad and onError handlers to detect rendering failures, and add a manual refresh button to retry PDF generation. Verify useBlobObjectUrl hook usage before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useBlobObjectUrl.ts",
-          "operation": "modify",
-          "description": "Fix potential issues in blob URL generation: ensure PDF validation doesn't block URL creation for valid-looking PDFs, verify Blob constructor receives correct data type, ensure cleanup doesn't prematurely revoke URLs still in use by iframes, and add retry mechanism for failed blob creation. Preserve existing signature-based change detection."
-        },
-        {
-          "path": "frontend/src/utils/getApplicationStatusResult.ts",
-          "operation": "modify",
-          "description": "Enhance PDF attachment normalization to handle edge cases: verify bytes are properly converted to Uint8Array (not regular arrays), ensure contentType is set to 'application/pdf', verify filename has .pdf extension, and add validation logging for each normalization step. This ensures consistent PDF data structure before rendering."
-        },
-        {
-          "path": "frontend/src/components/status/ApplicationStatusManager.tsx",
-          "operation": "modify",
-          "description": "Add diagnostic logging when displaying application statuses with PDF attachments: log when attachment data is passed to PdfAttachmentSection, verify the attachment object structure matches expected PDFData interface, and add error boundary handling around PDF preview to prevent crashes from affecting the entire component."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
-      "acceptanceCriteria": [
-        "Console logs show PDF byte array length when received from backend",
-        "Console logs show PDF validation results (header check, EOF marker check)",
-        "Console logs show blob URL creation success/failure",
-        "Console logs show iframe load events and any rendering errors"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/pdfAttachment.ts",
-          "operation": "modify",
-          "description": "Add detailed validation logging: log isPdfValid function entry with bytes length, log header validation with first 5 bytes in hex format, log EOF marker search with last 1024 bytes inspection results, log final validation decision (pass/fail with reason), and preserve existing validation logic without modifications."
-        },
-        {
-          "path": "frontend/src/hooks/useBlobObjectUrl.ts",
-          "operation": "modify",
-          "description": "Instrument blob URL lifecycle: log when hook is called with new data (signature + length), log validation step entry and results, log Blob constructor invocation with MIME type, log URL.createObjectURL success with generated URL string, log cleanup operations when URL is revoked, and log when cached URL is reused to skip regeneration."
-        },
-        {
-          "path": "frontend/src/components/status/PdfAttachmentSection.tsx",
-          "operation": "modify",
-          "description": "Add comprehensive iframe and rendering logs: log component mount with attachment metadata, log when pdfUrl is set/updated from hook, log iframe src assignment, implement onLoad handler to log successful PDF rendering, implement onError handler to log iframe failures with error details, and log user interactions (view button click, download button click)."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add logging to useGetApplicationStatus query hook: log when query is triggered with applicationId and email, log raw response from backend actor before normalization, log any query errors with full error object, and log successful data retrieval with attachment presence indicator. This completes the end-to-end logging from API call to UI rendering."
+          "description": "Remove all PDF-related UI elements from the AustralianVisaCheckPage component including: (1) Remove the PdfAttachmentSection component rendering from the status check results display, (2) Remove any PDF attachment indicators or links in the results card, (3) Keep the backend query logic intact to continue fetching full status data including attachments, (4) Ensure the page displays all other application status fields normally (application ID, status, visa type, applicant name, email, last updated, comments)"
         }
       ]
     }

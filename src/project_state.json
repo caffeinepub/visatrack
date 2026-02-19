@@ -3,47 +3,20 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [
-    "PDF display issue persists after version 40 deployment"
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-investigate-and-diagnose-why-pdf-attachments-in-approved-application-statuses-are-not-displaying-correctly-despite-previous-attempts-to-fix-the-issue-in-versions-39-40",
-      "title": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
+      "id": "feature-remove-the-pdf-attachment-column-section-from-the-applicationstatusmanager-component-display-while-preserving-the-underlying-pdf-storage-functionality-in-the-backend",
+      "title": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-fix-the-pdfattachmentsection-component-to-reliably-display-approved-application-pdfs-by-ensuring-blob-urls-are-correctly-generated-from-valid-pdf-bytes-and-iframes-can-render-them",
-      "title": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-comprehensive-error-logging-to-track-the-complete-pdf-data-flow-from-backend-retrieval-through-blob-url-creation-to-iframe-rendering-including-validation-results-at-each-step",
-      "title": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-2",
-      "summary": "Ensure that when an application status is approved, the PDF attachment bytes stored in the backend are valid and complete PDF data",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Fix persistent PDF display issue in approved applications",
+  "new_feature_requests": [],
+  "projectName": "Remove PDF column from application status display",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

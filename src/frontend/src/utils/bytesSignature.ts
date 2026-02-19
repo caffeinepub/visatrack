@@ -1,53 +1,48 @@
 /**
- * Computes a deterministic signature (hash) from a byte array using FNV-1a algorithm.
- * This signature is used to detect when PDF bytes have changed, enabling reliable
- * change detection without comparing entire byte arrays.
- * 
- * The FNV-1a hash is fast, simple, and provides good distribution for our use case.
- * 
- * @param bytes - The byte array to hash
- * @returns A hexadecimal string representing the hash signature
+ * Utility that computes a deterministic FNV-1a hash signature from byte arrays
+ * with comprehensive diagnostic logging
  */
-export function computeBytesSignature(bytes: Uint8Array | number[] | undefined): string {
+
+export function computeBytesSignature(bytes: Uint8Array | null | undefined): string {
   const timestamp = new Date().toISOString();
-  
-  if (!bytes || bytes.length === 0) {
-    console.log(`🔍 [computeBytesSignature] ${timestamp} Empty or undefined bytes, returning 'empty'`);
+  console.log(`[${timestamp}] [bytesSignature] computeBytesSignature called`);
+
+  // Validate input
+  if (!bytes) {
+    console.warn(`[${timestamp}] [bytesSignature] Input is null or undefined`);
+    return 'null';
+  }
+
+  if (bytes.length === 0) {
+    console.warn(`[${timestamp}] [bytesSignature] Input is empty array`);
     return 'empty';
   }
 
-  console.log(`🔍 [computeBytesSignature] ${timestamp} Computing signature:`, {
-    bytesLength: bytes.length,
-    bytesType: bytes instanceof Uint8Array ? 'Uint8Array' : Array.isArray(bytes) ? 'Array' : typeof bytes,
-  });
-
-  try {
-    // FNV-1a hash parameters (32-bit)
-    const FNV_PRIME = 0x01000193;
-    let hash = 0x811c9dc5; // FNV offset basis
-
-    // Convert to Uint8Array if needed
-    const bytesArray = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-
-    // Hash all bytes
-    for (let i = 0; i < bytesArray.length; i++) {
-      hash ^= bytesArray[i];
-      hash = Math.imul(hash, FNV_PRIME);
-    }
-
-    // Convert to unsigned 32-bit integer and then to hex
-    const signature = (hash >>> 0).toString(16).padStart(8, '0');
-    
-    console.log(`✅ [computeBytesSignature] ${timestamp} Signature computed:`, {
-      signature,
-      bytesLength: bytesArray.length,
-      firstTenBytes: Array.from(bytesArray.slice(0, 10)),
-      lastTenBytes: Array.from(bytesArray.slice(-10)),
-    });
-
-    return signature;
-  } catch (error) {
-    console.error(`❌ [computeBytesSignature] ${timestamp} Error computing signature:`, error);
-    return 'error';
+  if (!(bytes instanceof Uint8Array)) {
+    console.error(`[${timestamp}] [bytesSignature] Invalid input type: expected Uint8Array, got ${typeof bytes}`);
+    return 'invalid-type';
   }
+
+  console.log(`[${timestamp}] [bytesSignature] Computing signature for ${bytes.length} bytes`);
+
+  // FNV-1a hash parameters
+  const FNV_PRIME = 0x01000193;
+  const FNV_OFFSET = 0x811c9dc5;
+
+  let hash = FNV_OFFSET;
+
+  // Hash the bytes
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i];
+    hash = Math.imul(hash, FNV_PRIME);
+  }
+
+  // Convert to unsigned 32-bit integer and then to hex string
+  const signature = (hash >>> 0).toString(16).padStart(8, '0');
+  
+  console.log(`[${timestamp}] [bytesSignature] Signature computed: ${signature}`);
+  console.log(`[${timestamp}] [bytesSignature] First 5 bytes: [${Array.from(bytes.slice(0, 5)).join(', ')}]`);
+  console.log(`[${timestamp}] [bytesSignature] Last 5 bytes: [${Array.from(bytes.slice(-5)).join(', ')}]`);
+
+  return signature;
 }

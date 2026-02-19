@@ -7,16 +7,28 @@ import { LogOut, User, FileSearch } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function Header() {
-  const { identity, clear, isLoggingIn } = useInternetIdentity();
+  const { identity, clear, login, isLoggingIn } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const [route, setRoute] = useHashRoute();
   const queryClient = useQueryClient();
 
   const isAuthenticated = !!identity;
 
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
+  const handleAuth = async () => {
+    if (isAuthenticated) {
+      await clear();
+      queryClient.clear();
+    } else {
+      try {
+        await login();
+      } catch (error: any) {
+        console.error('Login error:', error);
+        if (error.message === 'User is already authenticated') {
+          await clear();
+          setTimeout(() => login(), 300);
+        }
+      }
+    }
   };
 
   const getInitials = (name: string) => {
@@ -69,13 +81,13 @@ export default function Header() {
                   <span className="text-sm font-medium">{userProfile.name}</span>
                 </div>
               )}
-              <Button onClick={handleLogout} variant="outline" size="sm">
+              <Button onClick={handleAuth} variant="outline" size="sm">
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
             </>
           ) : (
-            <Button disabled={isLoggingIn} variant="default" size="sm">
+            <Button onClick={handleAuth} disabled={isLoggingIn} variant="default" size="sm">
               <User className="mr-2 h-4 w-4" />
               {isLoggingIn ? 'Logging in...' : 'Login'}
             </Button>

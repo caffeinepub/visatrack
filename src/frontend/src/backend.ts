@@ -135,11 +135,13 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserProfileByPrincipal(principalId: Principal): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getPDF(id: bigint): Promise<PDFData | null>;
     getUpcomingReminders(): Promise<Array<VisaRecord>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisaRecords(): Promise<Array<VisaRecord>>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    storePDF(pdfData: PDFData): Promise<bigint>;
     updateVisaRecord(id: string, updatedRecord: VisaRecord): Promise<void>;
 }
 import type { ApplicationStatus as _ApplicationStatus, PDFData as _PDFData, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VisaRecord as _VisaRecord } from "./declarations/backend.did.d.ts";
@@ -299,6 +301,20 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n14(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getPDF(arg0: bigint): Promise<PDFData | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPDF(arg0);
+                return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPDF(arg0);
+            return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getUpcomingReminders(): Promise<Array<VisaRecord>> {
         if (this.processError) {
             try {
@@ -366,6 +382,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
+    async storePDF(arg0: PDFData): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.storePDF(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.storePDF(arg0);
             return result;
         }
     }

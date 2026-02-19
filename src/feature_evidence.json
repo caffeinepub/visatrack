@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-investigate-and-diagnose-why-pdf-attachments-in-approved-application-statuses-are-not-displaying-correctly-despite-previous-attempts-to-fix-the-issue-in-versions-39-40",
-      "featureTitle": "Investigate and diagnose why PDF attachments in approved application statuses are not displaying correctly despite previous attempts to fix the issue in versions 39-40",
+      "featureId": "feature-remove-the-pdf-attachment-column-section-from-the-applicationstatusmanager-component-display-while-preserving-the-underlying-pdf-storage-functionality-in-the-backend",
+      "featureTitle": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
       "files": [
-        "frontend/src/components/status/PdfAttachmentSection.tsx",
-        "frontend/src/hooks/useBlobObjectUrl.ts",
-        "frontend/src/pages/AustralianVisaCheckPage.tsx",
-        "frontend/src/utils/pdfAttachment.ts"
+        "frontend/src/components/status/ApplicationStatusManager.tsx",
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -20,49 +18,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-pdfattachmentsection-component-to-reliably-display-approved-application-pdfs-by-ensuring-blob-urls-are-correctly-generated-from-valid-pdf-bytes-and-iframes-can-render-them",
-      "featureTitle": "Fix the PdfAttachmentSection component to reliably display approved application PDFs by ensuring blob URLs are correctly generated from valid PDF bytes and iframes can render them",
-      "files": [
-        "frontend/src/components/status/PdfAttachmentSection.tsx",
-        "frontend/src/hooks/useBlobObjectUrl.ts",
-        "frontend/src/utils/getApplicationStatusResult.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-comprehensive-error-logging-to-track-the-complete-pdf-data-flow-from-backend-retrieval-through-blob-url-creation-to-iframe-rendering-including-validation-results-at-each-step",
-      "featureTitle": "Add comprehensive error logging to track the complete PDF data flow from backend retrieval through blob URL creation to iframe rendering, including validation results at each step",
-      "files": [
-        "frontend/src/components/status/PdfAttachmentSection.tsx",
-        "frontend/src/hooks/useBlobObjectUrl.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/utils/pdfAttachment.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

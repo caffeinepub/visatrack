@@ -52,10 +52,12 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserProfileByPrincipal(principalId: Principal): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getPDF(id: bigint): Promise<PDFData | null>;
     getUpcomingReminders(): Promise<Array<VisaRecord>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVisaRecords(): Promise<Array<VisaRecord>>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    storePDF(pdfData: PDFData): Promise<bigint>;
     updateVisaRecord(id: string, updatedRecord: VisaRecord): Promise<void>;
 }

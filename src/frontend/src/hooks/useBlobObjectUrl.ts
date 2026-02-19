@@ -1,196 +1,99 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { computeBytesSignature } from '../utils/bytesSignature';
-
-interface UseBlobObjectUrlResult {
-  url: string | null;
-  error: string | null;
-  signature: string;
-}
+import { isPdfValid } from '../utils/pdfAttachment';
 
 /**
- * Custom hook that creates and manages Blob/Object URLs from binary data.
- * Includes PDF validation and automatic cleanup with extended revocation delay.
- * Returns a signature derived from the bytes to enable reliable change detection.
- * 
- * The signature ensures that when PDF bytes remain unchanged (e.g., when only
- * updating approval status), the same content is displayed without regeneration.
+ * Custom React hook that creates and manages Blob/Object URLs from binary data
+ * with extensive diagnostic logging at every step
  */
-export function useBlobObjectUrl(
-  bytes: Uint8Array | number[] | undefined,
-  contentType: string | undefined
-): UseBlobObjectUrlResult {
-  const [url, setUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [signature, setSignature] = useState<string>('');
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousUrlRef = useRef<string | null>(null);
+export function useBlobObjectUrl(bytes: Uint8Array | null | undefined, mimeType: string = 'application/pdf'): string | null {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
 
   useEffect(() => {
     const timestamp = new Date().toISOString();
-    console.log(`🔍 [useBlobObjectUrl] ${timestamp} Effect triggered:`, {
-      hasBytesInput: !!bytes,
-      bytesType: bytes ? (bytes instanceof Uint8Array ? 'Uint8Array' : Array.isArray(bytes) ? 'Array' : typeof bytes) : 'undefined',
-      bytesLength: bytes?.length || 0,
-      contentType,
-      previousUrl: previousUrlRef.current ? 'exists' : 'null',
-    });
-
-    // Clear any pending cleanup
-    if (timeoutRef.current) {
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Clearing pending cleanup timeout`);
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    // Revoke previous URL immediately when bytes change
-    if (previousUrlRef.current) {
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Revoking previous URL immediately:`, previousUrlRef.current.substring(0, 50));
-      URL.revokeObjectURL(previousUrlRef.current);
-      previousUrlRef.current = null;
-    }
-
-    // Reset state
-    setUrl(null);
-    setError(null);
+    console.log(`[${timestamp}] [useBlobObjectUrl] Effect triggered`);
+    console.log(`[${timestamp}] [useBlobObjectUrl] Input bytes:`, bytes ? `${bytes.length} bytes` : 'null/undefined');
+    console.log(`[${timestamp}] [useBlobObjectUrl] MIME type: ${mimeType}`);
 
     // Validate input
     if (!bytes || bytes.length === 0) {
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} No bytes provided or empty array`);
-      setSignature('empty');
+      console.warn(`[${timestamp}] [useBlobObjectUrl] Invalid input: bytes is null, undefined, or empty`);
+      setObjectUrl(null);
       return;
     }
 
-    if (!contentType) {
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} No content type provided`);
-      setError('Content type is required');
-      setSignature('no-content-type');
+    // Check if bytes is a valid Uint8Array
+    if (!(bytes instanceof Uint8Array)) {
+      console.error(`[${timestamp}] [useBlobObjectUrl] Invalid input type: expected Uint8Array, got ${typeof bytes}`);
+      setObjectUrl(null);
       return;
+    }
+
+    console.log(`[${timestamp}] [useBlobObjectUrl] Bytes validation passed`);
+    console.log(`[${timestamp}] [useBlobObjectUrl] First 10 bytes: [${Array.from(bytes.slice(0, 10)).join(', ')}]`);
+    console.log(`[${timestamp}] [useBlobObjectUrl] Last 10 bytes: [${Array.from(bytes.slice(-10)).join(', ')}]`);
+
+    // Compute signature to detect content changes
+    const newSignature = computeBytesSignature(bytes);
+    console.log(`[${timestamp}] [useBlobObjectUrl] Computed signature: ${newSignature}`);
+    console.log(`[${timestamp}] [useBlobObjectUrl] Previous signature: ${signature}`);
+
+    // Only recreate blob if content changed
+    if (newSignature === signature) {
+      console.log(`[${timestamp}] [useBlobObjectUrl] Signature unchanged, skipping blob recreation`);
+      return;
+    }
+
+    console.log(`[${timestamp}] [useBlobObjectUrl] Signature changed, creating new blob`);
+
+    // Validate PDF structure if MIME type is PDF
+    if (mimeType === 'application/pdf') {
+      const isValid = isPdfValid(bytes);
+      if (!isValid) {
+        console.error(`[${timestamp}] [useBlobObjectUrl] PDF validation failed`);
+        setObjectUrl(null);
+        setSignature(newSignature);
+        return;
+      }
+      console.log(`[${timestamp}] [useBlobObjectUrl] PDF validation passed`);
+    }
+
+    // Revoke old URL if it exists
+    if (objectUrl) {
+      console.log(`[${timestamp}] [useBlobObjectUrl] Revoking old object URL: ${objectUrl}`);
+      URL.revokeObjectURL(objectUrl);
     }
 
     try {
-      // Convert to Uint8Array if needed and ensure it has a proper ArrayBuffer
-      const bytesArray = bytes instanceof Uint8Array 
-        ? new Uint8Array(bytes) // Create new instance to ensure proper ArrayBuffer type
-        : new Uint8Array(bytes);
-      
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Converted to Uint8Array:`, {
-        length: bytesArray.length,
-        hasBuffer: !!bytesArray.buffer,
-        bufferByteLength: bytesArray.buffer?.byteLength,
-      });
+      // Create blob with proper MIME type
+      const blob = new Blob([bytes as BlobPart], { type: mimeType });
+      console.log(`[${timestamp}] [useBlobObjectUrl] Blob created successfully`);
+      console.log(`[${timestamp}] [useBlobObjectUrl] Blob size: ${blob.size} bytes`);
+      console.log(`[${timestamp}] [useBlobObjectUrl] Blob type: ${blob.type}`);
 
-      // Compute signature from full bytes for reliable change detection
-      const newSignature = computeBytesSignature(bytesArray);
+      // Create object URL
+      const url = URL.createObjectURL(blob);
+      console.log(`[${timestamp}] [useBlobObjectUrl] Object URL created: ${url}`);
+
+      setObjectUrl(url);
       setSignature(newSignature);
-
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Creating Blob URL:`, {
-        signature: newSignature,
-        size: bytesArray.length,
-        contentType,
-        firstTenBytes: Array.from(bytesArray.slice(0, 10)),
-        lastTenBytes: Array.from(bytesArray.slice(-10)),
-      });
-
-      // PDF validation: check for PDF header
-      if (contentType === 'application/pdf') {
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} Starting PDF validation...`);
-        
-        const headerBytes = Array.from(bytesArray.slice(0, 5));
-        const header = String.fromCharCode(...headerBytes);
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} PDF Header check:`, {
-          headerBytes,
-          headerString: header,
-          expectedHeader: '%PDF-',
-          isValid: header.startsWith('%PDF-'),
-        });
-
-        if (!header.startsWith('%PDF-')) {
-          const errorMsg = 'Invalid PDF: Missing PDF header';
-          setError(errorMsg);
-          console.warn(`❌ [useBlobObjectUrl] ${timestamp} ${errorMsg}`);
-          return;
-        }
-
-        // Check for EOF marker (should be near the end)
-        const lastKB = bytesArray.slice(Math.max(0, bytesArray.length - 1024));
-        const lastKBStr = String.fromCharCode(...Array.from(lastKB));
-        const hasEOF = lastKBStr.includes('%%EOF');
-        
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} PDF EOF marker check:`, {
-          searchedLastBytes: lastKB.length,
-          hasEOFMarker: hasEOF,
-          lastKBPreview: lastKBStr.slice(-100),
-        });
-
-        if (!hasEOF) {
-          const errorMsg = 'Invalid PDF: Missing EOF marker (file may be truncated or corrupted)';
-          setError(errorMsg);
-          console.warn(`❌ [useBlobObjectUrl] ${timestamp} ${errorMsg}`, {
-            bytesLength: bytesArray.length,
-            lastKBPreview: lastKBStr.slice(-100),
-          });
-          return;
-        }
-
-        console.log(`✅ [useBlobObjectUrl] ${timestamp} PDF validation passed`);
-      }
-
-      // Create Blob and Object URL - use array buffer to avoid type issues
-      // This preserves the exact binary content without modification
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Creating Blob with ArrayBuffer...`);
-      const blob = new Blob([bytesArray.buffer], { type: contentType });
-      console.log(`🔍 [useBlobObjectUrl] ${timestamp} Blob created:`, {
-        size: blob.size,
-        type: blob.type,
-      });
-
-      const objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
-      previousUrlRef.current = objectUrl;
-
-      console.log(`✅ [useBlobObjectUrl] ${timestamp} Blob URL created successfully:`, {
-        url: objectUrl.substring(0, 50) + '...',
-        signature: newSignature,
-        size: bytesArray.length,
-        contentType,
-        preservedExactBytes: true,
-      });
-
-      // Cleanup function with extended delay
-      return () => {
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} Cleanup function called for URL:`, objectUrl.substring(0, 50));
-        timeoutRef.current = setTimeout(() => {
-          URL.revokeObjectURL(objectUrl);
-          console.log(`🔍 [useBlobObjectUrl] ${timestamp} Blob URL revoked (delayed):`, objectUrl.substring(0, 50));
-        }, 2000); // 2 second delay to prevent premature revocation
-      };
-    } catch (err) {
-      const timestamp = new Date().toISOString();
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create Blob URL';
-      setError(errorMessage);
-      setSignature('error');
-      console.error(`❌ [useBlobObjectUrl] ${timestamp} Error creating Blob URL:`, {
-        error: err,
-        errorMessage,
-        errorStack: err instanceof Error ? err.stack : undefined,
-      });
+      console.log(`[${timestamp}] [useBlobObjectUrl] State updated with new URL and signature`);
+    } catch (error) {
+      console.error(`[${timestamp}] [useBlobObjectUrl] Error creating blob/URL:`, error);
+      setObjectUrl(null);
+      setSignature(newSignature);
     }
-  }, [bytes, contentType]);
 
-  // Cleanup on unmount
-  useEffect(() => {
+    // Cleanup function
     return () => {
-      const timestamp = new Date().toISOString();
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} Cleared timeout on unmount`);
-      }
-      if (previousUrlRef.current) {
-        URL.revokeObjectURL(previousUrlRef.current);
-        console.log(`🔍 [useBlobObjectUrl] ${timestamp} Cleanup on unmount:`, previousUrlRef.current.substring(0, 50));
+      if (objectUrl) {
+        const cleanupTimestamp = new Date().toISOString();
+        console.log(`[${cleanupTimestamp}] [useBlobObjectUrl] Cleanup: revoking object URL: ${objectUrl}`);
+        URL.revokeObjectURL(objectUrl);
       }
     };
-  }, []);
+  }, [bytes, mimeType]); // Removed signature and objectUrl from dependencies to prevent loops
 
-  return { url, error, signature };
+  return objectUrl;
 }

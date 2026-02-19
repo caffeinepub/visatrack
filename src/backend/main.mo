@@ -7,6 +7,7 @@ import Principal "mo:core/Principal";
 import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
+import Nat "mo:core/Nat";
 import Nat8 "mo:core/Nat8";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
@@ -132,6 +133,8 @@ actor {
     applicationStatuses.add(caller, userStatuses);
   };
 
+  // Public query - allows anyone (including anonymous) to check application status
+  // This is intentional for public-facing application status lookup
   public query ({ caller }) func getApplicationStatus(applicationId : Text, applicantEmail : Text) : async ?ApplicationStatus {
     let normalizedKey = createNormalizedApplicationKey(applicationId, applicantEmail);
 
@@ -307,5 +310,26 @@ actor {
     };
 
     callerReminders.sort(VisaRecord.compareByExpiryDate);
+  };
+
+  // Store and retrieve PDF files
+  let pdfs = Map.empty<Nat, PDFData>();
+  var nextId = 0;
+
+  public shared ({ caller }) func storePDF(pdfData : PDFData) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can store PDFs");
+    };
+    let id = nextId;
+    nextId += 1;
+    pdfs.add(id, pdfData);
+    id;
+  };
+
+  public query ({ caller }) func getPDF(id : Nat) : async ?PDFData {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can retrieve PDFs");
+    };
+    pdfs.get(id);
   };
 };

@@ -1,71 +1,88 @@
 /**
- * Utility helpers to unwrap common Candid optional encodings.
- * Handles null/undefined, [], [value], and {__kind__: 'None'|'Some'} patterns.
+ * Utility helpers to unwrap common Candid optional encodings and normalize bytes/strings
  */
 
-/**
- * Unwraps a Candid optional value to T | null.
- */
-export function unwrapOptional<T>(value: unknown): T | null {
-  // Handle null/undefined
+export function unwrapCandidOption<T>(value: T | null | undefined | [] | { __kind__: 'Some'; value: T } | { __kind__: 'None' }): T | null {
   if (value === null || value === undefined) {
     return null;
   }
-
-  // Handle array-based optional
-  if (Array.isArray(value)) {
-    if (value.length === 0) {
-      return null;
-    }
-    if (value.length === 1) {
-      return value[0] as T;
-    }
-    console.warn('Unexpected array length in optional:', value);
+  if (Array.isArray(value) && value.length === 0) {
     return null;
   }
-
-  // Handle object-based optional with __kind__ discriminator
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as any;
-    
-    if (obj.__kind__ === 'None') {
+  if (typeof value === 'object' && value !== null && '__kind__' in value) {
+    if (value.__kind__ === 'None') {
       return null;
     }
-    
-    if (obj.__kind__ === 'Some') {
-      return obj.value as T;
+    if (value.__kind__ === 'Some' && 'value' in value) {
+      return value.value as T;
     }
   }
-
-  // Direct value (no wrapper)
   return value as T;
 }
 
-/**
- * Ensures bytes are returned as a concrete Uint8Array.
- */
-export function normalizeBytes(bytes: unknown): Uint8Array | null {
+export function normalizeBytes(bytes: any): Uint8Array | null {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [candidOption] normalizeBytes called`);
+  console.log(`[${timestamp}] [candidOption] Input type: ${bytes?.constructor?.name || typeof bytes}`);
+
   if (!bytes) {
+    console.warn(`[${timestamp}] [candidOption] Input is null or undefined`);
     return null;
   }
 
+  // Already a Uint8Array
   if (bytes instanceof Uint8Array) {
-    return bytes.length > 0 ? bytes : null;
+    console.log(`[${timestamp}] [candidOption] Input is already Uint8Array, length: ${bytes.length}`);
+    return bytes;
   }
 
+  // Handle array-like objects
   if (Array.isArray(bytes)) {
-    return bytes.length > 0 ? new Uint8Array(bytes) : null;
+    console.log(`[${timestamp}] [candidOption] Input is Array, length: ${bytes.length}`);
+    try {
+      const result = new Uint8Array(bytes);
+      console.log(`[${timestamp}] [candidOption] Converted Array to Uint8Array, length: ${result.length}`);
+      return result;
+    } catch (error) {
+      console.error(`[${timestamp}] [candidOption] Error converting Array to Uint8Array:`, error);
+      return null;
+    }
   }
 
+  // Handle objects with numeric keys (like { 0: 37, 1: 80, ... })
+  if (typeof bytes === 'object' && bytes !== null) {
+    const keys = Object.keys(bytes);
+    console.log(`[${timestamp}] [candidOption] Input is object with ${keys.length} keys`);
+    
+    // Check if it looks like an array-like object with numeric keys
+    const isArrayLike = keys.every(key => !isNaN(Number(key)));
+    
+    if (isArrayLike && keys.length > 0) {
+      try {
+        const arr = keys.map(key => bytes[key]);
+        const result = new Uint8Array(arr);
+        console.log(`[${timestamp}] [candidOption] Converted object to Uint8Array, length: ${result.length}`);
+        return result;
+      } catch (error) {
+        console.error(`[${timestamp}] [candidOption] Error converting object to Uint8Array:`, error);
+        return null;
+      }
+    }
+  }
+
+  console.warn(`[${timestamp}] [candidOption] Unable to normalize bytes, unsupported format`);
   return null;
 }
 
-/**
- * Ensures a string field is non-empty or returns null.
- */
-export function normalizeString(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim();
+export function normalizeString(value: any): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (Array.isArray(value) && value.length === 0) {
+    return null;
+  }
+  if (typeof value === 'string') {
+    return value;
   }
   return null;
 }

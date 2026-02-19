@@ -1,3 +1,4 @@
+import React from 'react';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useGetCallerUserProfile } from './hooks/useQueries';
 import { useHashRoute } from './hooks/useHashRoute';

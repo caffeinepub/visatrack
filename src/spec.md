@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix persistent PDF display issue in approved applications where attachments are not rendering correctly.
+**Goal:** Remove the PDF column from the application status display interface.
 
 **Planned changes:**
-- Investigate root cause of PDF display failure across backend data storage, frontend rendering, and blob URL generation
-- Add PDF data validation in backend to ensure stored attachment bytes are valid and complete
-- Fix PdfAttachmentSection component to reliably generate blob URLs and render PDFs in iframes
-- Add comprehensive error logging throughout the PDF data flow from backend retrieval to iframe rendering
+- Hide the PDF attachment column from the ApplicationStatusManager component
+- Remove PDF-related UI elements from the application status table/list
+- Preserve backend PDF storage functionality
 
-**User-visible outcome:** Users can view PDF attachments in approved applications correctly, with working preview, view, and download buttons.
+**User-visible outcome:** Users will see a cleaner application status interface without the PDF column, while PDF data continues to be stored in the backend.

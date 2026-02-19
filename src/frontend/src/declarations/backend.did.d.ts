@@ -61,11 +61,13 @@ export interface _SERVICE {
     [] | [UserProfile]
   >,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getPDF' : ActorMethod<[bigint], [] | [PDFData]>,
   'getUpcomingReminders' : ActorMethod<[], Array<VisaRecord>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVisaRecords' : ActorMethod<[], Array<VisaRecord>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'storePDF' : ActorMethod<[PDFData], bigint>,
   'updateVisaRecord' : ActorMethod<[string, VisaRecord], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
