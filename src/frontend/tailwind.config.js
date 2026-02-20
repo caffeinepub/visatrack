@@ -55,7 +55,13 @@ export default {
                     3: 'oklch(var(--chart-3))',
                     4: 'oklch(var(--chart-4))',
                     5: 'oklch(var(--chart-5))'
-                }
+                },
+                'govt-navy': 'var(--govt-navy)',
+                'govt-blue': 'var(--govt-blue)',
+                'govt-blue-dark': 'var(--govt-blue-dark)',
+                'govt-blue-light': 'var(--govt-blue-light)',
+                'govt-orange': 'var(--govt-orange)',
+                'govt-orange-dark': 'var(--govt-orange-dark)'
             },
             borderRadius: {
                 lg: 'var(--radius)',

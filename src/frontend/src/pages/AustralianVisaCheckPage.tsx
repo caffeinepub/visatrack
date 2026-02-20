@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { Search, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Menu, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { useCheckApplicationStatus } from '../hooks/useQueries';
 import { normalizeApplicationKey } from '../utils/applicationStatusNormalization';
-import AppLayout from '../components/layout/AppLayout';
 
 /**
- * Public visa status check page with blue-themed UI that uses React Query's
- * useCheckApplicationStatus mutation hook with comprehensive error handling
+ * Public visa status check page redesigned to match Australian Government Department of Home Affairs website style with dark navy header, coat of arms logo, navigation links, breadcrumbs, and bright blue content area with expandable VEVO section containing the visa check form.
  */
 export default function AustralianVisaCheckPage() {
   const [applicationId, setApplicationId] = useState('');
   const [applicantEmail, setApplicantEmail] = useState('');
+  const [isVevoOpen, setIsVevoOpen] = useState(true);
 
   const { mutate: checkStatus, data: status, isPending, error } = useCheckApplicationStatus();
 
@@ -46,170 +46,240 @@ export default function AustralianVisaCheckPage() {
   };
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-blue-900 mb-4">
-              Australian Visa Status Check
-            </h1>
-            <p className="text-lg text-blue-700">
-              Enter your application details to check your visa status
-            </p>
+    <div className="min-h-screen bg-white">
+      {/* Dark Navy Header */}
+      <header className="bg-govt-navy">
+        <div className="container mx-auto px-4">
+          {/* Top Header Bar */}
+          <div className="flex items-center justify-between py-4">
+            <button className="text-white p-2 hover:bg-white/10 rounded">
+              <Menu className="h-6 w-6" />
+            </button>
+            
+            <div className="flex items-center gap-4">
+              <img 
+                src="/assets/generated/aus-govt-logo.dim_200x80.png" 
+                alt="Australian Government Coat of Arms" 
+                className="h-16"
+              />
+              <div className="text-white">
+                <div className="text-sm font-light">Australian Government</div>
+                <div className="text-lg font-semibold">Department of Home Affairs</div>
+              </div>
+            </div>
+
+            <button className="text-white p-2 hover:bg-white/10 rounded">
+              <Search className="h-6 w-6" />
+            </button>
           </div>
 
-          {/* Search Form */}
-          <Card className="mb-8 border-blue-200 shadow-lg">
-            <CardHeader className="bg-blue-50">
-              <CardTitle className="text-blue-900">Check Your Application</CardTitle>
-              <CardDescription>
-                Enter your application ID and email address to view your visa status
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="applicationId" className="text-blue-900">
-                    Application ID
-                  </Label>
-                  <Input
-                    id="applicationId"
-                    type="text"
-                    placeholder="Enter your application ID"
-                    value={applicationId}
-                    onChange={(e) => setApplicationId(e.target.value)}
-                    required
-                    className="border-blue-200 focus:border-blue-500"
-                  />
-                </div>
+          {/* Navigation Links */}
+          <nav className="border-t border-white/20 py-3">
+            <div className="flex gap-6 text-sm">
+              <a href="#" className="text-white hover:underline">ImmiAccount</a>
+              <a href="#" className="text-white hover:underline">Visa Entitlement Verification Online (VEVO)</a>
+              <a href="#" className="text-white hover:underline">My Tourist Refund Scheme (TRS)</a>
+            </div>
+          </nav>
+        </div>
+      </header>
 
-                <div className="space-y-2">
-                  <Label htmlFor="applicantEmail" className="text-blue-900">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="applicantEmail"
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={applicantEmail}
-                    onChange={(e) => setApplicantEmail(e.target.value)}
-                    required
-                    className="border-blue-200 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    type="submit"
-                    disabled={isPending}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Checking...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Check Status
-                      </>
-                    )}
-                  </Button>
-                  {status && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleReset}
-                      className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                    >
-                      Reset
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Error Display */}
-          {error && (
-            <Alert variant="destructive" className="mb-8">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error instanceof Error ? error.message : 'An error occurred while checking your application status.'}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* No Results Display */}
-          {!isPending && !error && status === null && applicationId && applicantEmail && (
-            <Alert className="mb-8 border-blue-200">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-900">
-                No application found with the provided details. Please check your Application ID and Email address.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Results Display */}
-          {status && (
-            <Card className="border-blue-200 shadow-lg">
-              <CardHeader className="bg-blue-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-blue-900 mb-2">
-                      Application Status
-                    </CardTitle>
-                    <CardDescription>
-                      Application ID: {status.applicationId}
-                    </CardDescription>
-                  </div>
-                  <Badge
-                    variant={status.status.toLowerCase().includes('approved') ? 'default' : 'secondary'}
-                    className={
-                      status.status.toLowerCase().includes('approved')
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-blue-600 hover:bg-blue-700'
-                    }
-                  >
-                    {status.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-blue-900">Applicant Name</Label>
-                    <p className="text-lg font-medium mt-1">{status.applicantName}</p>
-                  </div>
-                  <div>
-                    <Label className="text-blue-900">Visa Type</Label>
-                    <p className="text-lg font-medium mt-1">{status.visaType}</p>
-                  </div>
-                  <div>
-                    <Label className="text-blue-900">Email</Label>
-                    <p className="text-lg font-medium mt-1">{status.applicantEmail}</p>
-                  </div>
-                  <div>
-                    <Label className="text-blue-900">Last Updated</Label>
-                    <p className="text-lg font-medium mt-1">
-                      {new Date(Number(status.lastUpdated) / 1_000_000).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-
-                {status.comments && (
-                  <div>
-                    <Label className="text-blue-900">Comments</Label>
-                    <p className="text-base mt-2 text-muted-foreground">{status.comments}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+      {/* Breadcrumb Navigation */}
+      <div className="bg-govt-blue-light py-3">
+        <div className="container mx-auto px-4">
+          <nav className="flex items-center gap-2 text-sm text-white">
+            <a href="#" className="hover:underline">Home</a>
+            <ChevronRight className="h-4 w-4" />
+            <a href="#" className="hover:underline">Visas</a>
+            <ChevronRight className="h-4 w-4" />
+            <span>When you have a visa</span>
+          </nav>
         </div>
       </div>
-    </AppLayout>
+
+      {/* Main Content Area - Bright Blue Background */}
+      <div className="bg-govt-blue py-16">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <h1 className="text-5xl font-bold text-white mb-8">
+            Check visa details and conditions
+          </h1>
+
+          {/* Expandable VEVO Section */}
+          <Collapsible open={isVevoOpen} onOpenChange={setIsVevoOpen}>
+            <CollapsibleTrigger className="w-full bg-white/10 hover:bg-white/20 transition-colors rounded-t-lg">
+              <div className="flex items-center justify-between p-6">
+                <h2 className="text-2xl font-semibold text-white">Check conditions online (VEVO)</h2>
+                {isVevoOpen ? (
+                  <ChevronDown className="h-6 w-6 text-white" />
+                ) : (
+                  <ChevronRight className="h-6 w-6 text-white" />
+                )}
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="bg-white rounded-b-lg p-8 shadow-lg">
+                {/* Search Form */}
+                <div className="mb-8">
+                  <form onSubmit={handleSearch} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="applicationId" className="text-govt-navy font-semibold text-base">
+                        Reference Number (Application ID)
+                      </Label>
+                      <Input
+                        id="applicationId"
+                        type="text"
+                        placeholder="Enter your reference number"
+                        value={applicationId}
+                        onChange={(e) => setApplicationId(e.target.value)}
+                        required
+                        className="border-gray-300 focus:border-govt-blue focus:ring-govt-blue text-base py-6"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="applicantEmail" className="text-govt-navy font-semibold text-base">
+                        Email Address
+                      </Label>
+                      <Input
+                        id="applicantEmail"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={applicantEmail}
+                        onChange={(e) => setApplicantEmail(e.target.value)}
+                        required
+                        className="border-gray-300 focus:border-govt-blue focus:ring-govt-blue text-base py-6"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        type="submit"
+                        disabled={isPending}
+                        className="bg-govt-orange hover:bg-govt-orange-dark text-white font-semibold px-8 py-6 text-base"
+                      >
+                        {isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="mr-2 h-5 w-5" />
+                            Check Status
+                          </>
+                        )}
+                      </Button>
+                      {status && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleReset}
+                          className="border-govt-navy text-govt-navy hover:bg-gray-100 font-semibold px-8 py-6 text-base"
+                        >
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* Error Display */}
+                {error && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {error instanceof Error ? error.message : 'An error occurred while checking your application status.'}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* No Results Display */}
+                {!isPending && !error && status === null && applicationId && applicantEmail && (
+                  <Alert className="mb-6 border-govt-blue bg-blue-50">
+                    <AlertCircle className="h-4 w-4 text-govt-blue" />
+                    <AlertDescription className="text-govt-navy">
+                      No application found with the provided details. Please check your Reference Number and Email address.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Results Display */}
+                {status && (
+                  <Card className="border-govt-blue shadow-lg">
+                    <CardContent className="pt-6 space-y-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-2xl font-bold text-govt-navy mb-2">
+                            Application Status
+                          </h3>
+                          <p className="text-gray-600">
+                            Reference Number: {status.applicationId}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={status.status.toLowerCase().includes('approved') ? 'default' : 'secondary'}
+                          className={
+                            status.status.toLowerCase().includes('approved')
+                              ? 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-base'
+                              : 'bg-govt-blue hover:bg-govt-blue-dark text-white px-4 py-2 text-base'
+                          }
+                        >
+                          {status.status}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                        <div>
+                          <Label className="text-govt-navy font-semibold">Applicant Name</Label>
+                          <p className="text-lg mt-1">{status.applicantName}</p>
+                        </div>
+                        <div>
+                          <Label className="text-govt-navy font-semibold">Visa Type</Label>
+                          <p className="text-lg mt-1">{status.visaType}</p>
+                        </div>
+                        <div>
+                          <Label className="text-govt-navy font-semibold">Email</Label>
+                          <p className="text-lg mt-1">{status.applicantEmail}</p>
+                        </div>
+                        <div>
+                          <Label className="text-govt-navy font-semibold">Last Updated</Label>
+                          <p className="text-lg mt-1">
+                            {new Date(Number(status.lastUpdated) / 1_000_000).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {status.comments && (
+                        <div className="pt-4 border-t">
+                          <Label className="text-govt-navy font-semibold">Comments</Label>
+                          <p className="text-base mt-2 text-gray-700">{status.comments}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-100 py-8 mt-12">
+        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
+          <p>© {new Date().getFullYear()} Australian Government. Built with ❤️ using{' '}
+            <a 
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-govt-blue hover:underline"
+            >
+              caffeine.ai
+            </a>
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

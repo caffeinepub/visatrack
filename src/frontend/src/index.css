@@ -43,6 +43,14 @@
         --chart-3: 0.55 0.22 25;
         --chart-4: 0.70 0.15 140;
         --chart-5: 0.50 0.18 300;
+
+        /* Australian Government color palette */
+        --govt-navy: oklch(0.18 0.04 250);
+        --govt-blue: oklch(0.50 0.15 240);
+        --govt-blue-dark: oklch(0.45 0.15 240);
+        --govt-blue-light: oklch(0.40 0.12 240);
+        --govt-orange: oklch(0.60 0.18 35);
+        --govt-orange-dark: oklch(0.55 0.18 35);
     }
 
     .dark {

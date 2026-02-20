@@ -1,25 +1,58 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-19T06:14:47.780Z",
+  "generatedAt": "2026-02-20T12:19:03.241Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
+        "summary": "Redesign the AustralianVisaCheckPage to match the Australian Government Department of Home Affairs website style shown in the uploaded image, including the dark blue header with the Australian Government coat of arms logo, navigation menu, and search icon",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "frontend/src/pages/AustralianVisaCheckPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update the main content area to use the same blue background (#006CB5) as shown in the uploaded image with the heading 'Check visa details and conditions' in large white text",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Maintain the existing functionality to check visa application status using reference number (applicationId) and email, ensuring the input fields are prominently displayed and clearly labeled",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add navigation links in the header area matching the government website style, including 'ImmiAccount', 'Visa Entitlement Verification Online (VEVO)', and 'My Tourist Refund Scheme (TRS)'",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AustralianVisaCheckPage.tsx"
+        ],
+        "matchedFiles": [
           "frontend/src/pages/AustralianVisaCheckPage.tsx"
         ]
       }
@@ -30,8 +63,10 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/status/ApplicationStatusManager.tsx",
+    "frontend/public/assets/generated/aus-govt-logo.dim_200x80.png",
+    "frontend/src/index.css",
     "frontend/src/pages/AustralianVisaCheckPage.tsx",
+    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

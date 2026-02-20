@@ -1,28 +1,78 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove PDF column from application status display",
+  "title": "Redesign website to match Australian Government visa check interface",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
+      "summary": "Redesign the AustralianVisaCheckPage to match the Australian Government Department of Home Affairs website style with dark blue header, coat of arms logo, navigation menu, and search icon",
       "acceptanceCriteria": [
-        "The PDF column is no longer visible in the application status table/list",
-        "Users cannot see or download PDF attachments from the UI",
-        "PDF data continues to be stored in the backend when creating/editing status entries",
-        "The PdfAttachmentSection component is not rendered",
-        "No PDF-related UI elements appear in the ApplicationStatusManager component"
+        "Page header uses dark navy blue (#002554 or similar) matching the government website",
+        "Australian Government coat of arms logo is displayed in the header",
+        "Header includes 'Department of Home Affairs' text",
+        "Header includes hamburger menu icon and search icon on appropriate sides",
+        "Navigation breadcrumbs display below header (Home > Visas > When you have a visa)"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/status/ApplicationStatusManager.tsx",
+          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "operation": "modify",
-          "description": "Remove all PDF-related UI elements from the ApplicationStatusManager component including: (1) Remove the PdfAttachmentSection component rendering from the status display table/cards, (2) Remove PDF upload input fields from the create/edit forms, (3) Remove all PDF download/view buttons and links, (4) Keep the backend PDF storage logic intact by maintaining the attachment field in status objects when calling createOrUpdateApplicationStatus, (5) Remove PDF file state management from the component (useState for PDF files), (6) Remove PDF-related form handlers and validation, (7) Ensure the component continues to function normally for all other fields (status, applicant name, email, visa type, comments)"
+          "description": "Replace the existing header structure with a government-styled header featuring dark navy blue background (#002554), Australian Government coat of arms logo at frontend/public/assets/generated/aus-govt-logo.dim_200x80.png, 'Australian Government' and 'Department of Home Affairs' text, hamburger menu icon (left), and search icon (right). Add breadcrumb navigation below the header displaying 'Home > Visas > When you have a visa'. Verify the generated logo component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
           "operation": "modify",
-          "description": "Remove all PDF-related UI elements from the AustralianVisaCheckPage component including: (1) Remove the PdfAttachmentSection component rendering from the status check results display, (2) Remove any PDF attachment indicators or links in the results card, (3) Keep the backend query logic intact to continue fetching full status data including attachments, (4) Ensure the page displays all other application status fields normally (application ID, status, visa type, applicant name, email, last updated, comments)"
+          "description": "Restructure the page to remove the existing AppLayout wrapper and implement the government website layout directly in this component, including the new header, navigation links section, and main content area to match the reference design."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Update the main content area to use bright blue background with the heading 'Check visa details and conditions' in large white text",
+      "acceptanceCriteria": [
+        "Main content area uses bright blue background matching the reference image",
+        "Heading text 'Check visa details and conditions' is displayed in large white font",
+        "Content section includes expandable/collapsible 'Check conditions online (VEVO)' section with dropdown arrow"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "operation": "modify",
+          "description": "Replace the existing main content section background with bright blue (#006CB5). Change the main heading to 'Check visa details and conditions' styled in large white text. Add an expandable/collapsible section labeled 'Check conditions online (VEVO)' with a dropdown arrow icon that toggles visibility of the visa check form content."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Maintain the existing functionality to check visa application status using reference number and email with prominent, clearly labeled input fields",
+      "acceptanceCriteria": [
+        "Reference number input field is clearly visible and labeled",
+        "Email input field is clearly visible and labeled",
+        "Search/Check button is prominently displayed",
+        "Existing normalization logic for applicationId and email is preserved",
+        "useCheckApplicationStatus mutation hook continues to function correctly"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "operation": "modify",
+          "description": "Preserve the existing form inputs (applicationId and email) and the check button, ensuring they remain prominently displayed and clearly labeled. Keep all existing normalization logic from applicationStatusNormalization.ts and the useCheckApplicationStatus mutation hook integration intact. Style the form controls to fit within the new government design theme while maintaining full functionality."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add navigation links in the header area matching the government website style for ImmiAccount, VEVO, and My Tourist Refund Scheme",
+      "acceptanceCriteria": [
+        "Three navigation links are displayed below the main header",
+        "Links are styled with white text on the dark blue background",
+        "Links maintain consistent spacing and alignment"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AustralianVisaCheckPage.tsx",
+          "operation": "modify",
+          "description": "Add a navigation section immediately below the main header containing three links: 'ImmiAccount', 'Visa Entitlement Verification Online (VEVO)', and 'My Tourist Refund Scheme (TRS)'. Style these links with white text on dark blue background matching the header, with consistent horizontal spacing and alignment. These links are non-functional placeholders matching the visual design of the reference website."
         }
       ]
     }

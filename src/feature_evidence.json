@@ -2,10 +2,9 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-the-pdf-attachment-column-section-from-the-applicationstatusmanager-component-display-while-preserving-the-underlying-pdf-storage-functionality-in-the-backend",
-      "featureTitle": "Remove the PDF attachment column/section from the ApplicationStatusManager component display while preserving the underlying PDF storage functionality in the backend",
+      "featureId": "feature-redesign-the-australianvisacheckpage-to-match-the-australian-government-department-of-home-affairs-website-style-shown-in-the-uploaded-image-including-the-dark-blue-header-with-the-australian-government-coat-of-arms-logo-navigation-menu-and-search-icon",
+      "featureTitle": "Redesign the AustralianVisaCheckPage to match the Australian Government Department of Home Affairs website style shown in the uploaded image, including the dark blue header with the Australian Government coat of arms logo, navigation menu, and search icon",
       "files": [
-        "frontend/src/components/status/ApplicationStatusManager.tsx",
         "frontend/src/pages/AustralianVisaCheckPage.tsx"
       ],
       "components": [
@@ -18,6 +17,63 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-main-content-area-to-use-the-same-blue-background-006cb5-as-shown-in-the-uploaded-image-with-the-heading-check-visa-details-and-conditions-in-large-white-text",
+      "featureTitle": "Update the main content area to use the same blue background (#006CB5) as shown in the uploaded image with the heading 'Check visa details and conditions' in large white text",
+      "files": [
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-maintain-the-existing-functionality-to-check-visa-application-status-using-reference-number-applicationid-and-email-ensuring-the-input-fields-are-prominently-displayed-and-clearly-labeled",
+      "featureTitle": "Maintain the existing functionality to check visa application status using reference number (applicationId) and email, ensuring the input fields are prominently displayed and clearly labeled",
+      "files": [
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-navigation-links-in-the-header-area-matching-the-government-website-style-including-immiaccount-visa-entitlement-verification-online-vevo-and-my-tourist-refund-scheme-trs",
+      "featureTitle": "Add navigation links in the header area matching the government website style, including 'ImmiAccount', 'Visa Entitlement Verification Online (VEVO)', and 'My Tourist Refund Scheme (TRS)'",
+      "files": [
+        "frontend/src/pages/AustralianVisaCheckPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }
