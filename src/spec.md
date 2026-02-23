@@ -1,14 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Redesign the visa check page to match the Australian Government Department of Home Affairs website style.
+**Goal:** Display specific applicant visa approval details when reference number '4906670766' and email 'jr321134@gmail.com' are entered.
 
 **Planned changes:**
-- Add dark navy blue header (#002554) with Australian Government coat of arms logo, Department of Home Affairs text, hamburger menu, and search icon
-- Add navigation links below header: ImmiAccount, Visa Entitlement Verification Online (VEVO), and My Tourist Refund Scheme (TRS)
-- Add breadcrumb navigation: Home > Visas > When you have a visa
-- Change main content area to bright blue background (#006CB5) with large white heading "Check visa details and conditions"
-- Add expandable "Check conditions online (VEVO)" section with dropdown arrow
-- Maintain existing reference number and email input fields with check functionality
+- Add backend data for reference number '4906670766' with email 'jr321134@gmail.com' that returns applicant name 'Rojee Sharma', visa type 'Work Visa', status 'Approved', and today's date as approval date
+- Update frontend to display all retrieved fields (applicant name, visa type, status, approval date) in a clear format matching the Australian Government website style
 
-**User-visible outcome:** Users will see a professional government-style interface that matches the Australian Department of Home Affairs website design while retaining the ability to check visa application status using reference number and email.
+**User-visible outcome:** Users can enter reference number '4906670766' and email 'jr321134@gmail.com' on the visa check page to see Rojee Sharma's approved Work Visa details with today's approval date displayed.

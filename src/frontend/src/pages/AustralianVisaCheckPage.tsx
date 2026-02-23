@@ -45,6 +45,16 @@ export default function AustralianVisaCheckPage() {
     setApplicantEmail('');
   };
 
+  // Format date in Australian locale (DD/MM/YYYY)
+  const formatAustralianDate = (timestamp: bigint): string => {
+    const date = new Date(Number(timestamp) / 1_000_000);
+    return date.toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Dark Navy Header */}
@@ -208,15 +218,19 @@ export default function AustralianVisaCheckPage() {
                 {status && (
                   <Card className="border-govt-blue shadow-lg">
                     <CardContent className="pt-6 space-y-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-2xl font-bold text-govt-navy mb-2">
-                            Application Status
-                          </h3>
-                          <p className="text-gray-600">
-                            Reference Number: {status.applicationId}
-                          </p>
-                        </div>
+                      {/* Prominent Applicant Name at Top */}
+                      <div className="mb-6">
+                        <h3 className="text-3xl font-bold text-govt-navy mb-1">
+                          {status.applicantName}
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Reference Number: {status.applicationId}
+                        </p>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="flex items-center gap-3 pb-4 border-b">
+                        <Label className="text-govt-navy font-semibold text-base">Status:</Label>
                         <Badge
                           variant={status.status.toLowerCase().includes('approved') ? 'default' : 'secondary'}
                           className={
@@ -229,30 +243,28 @@ export default function AustralianVisaCheckPage() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                      {/* Visa Details Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                         <div>
-                          <Label className="text-govt-navy font-semibold">Applicant Name</Label>
-                          <p className="text-lg mt-1">{status.applicantName}</p>
+                          <Label className="text-govt-navy font-semibold text-base">Visa Type</Label>
+                          <p className="text-lg mt-1 text-gray-800">{status.visaType}</p>
                         </div>
                         <div>
-                          <Label className="text-govt-navy font-semibold">Visa Type</Label>
-                          <p className="text-lg mt-1">{status.visaType}</p>
-                        </div>
-                        <div>
-                          <Label className="text-govt-navy font-semibold">Email</Label>
-                          <p className="text-lg mt-1">{status.applicantEmail}</p>
-                        </div>
-                        <div>
-                          <Label className="text-govt-navy font-semibold">Last Updated</Label>
-                          <p className="text-lg mt-1">
-                            {new Date(Number(status.lastUpdated) / 1_000_000).toLocaleDateString()}
+                          <Label className="text-govt-navy font-semibold text-base">Approval Date</Label>
+                          <p className="text-lg mt-1 text-gray-800">
+                            {formatAustralianDate(status.lastUpdated)}
                           </p>
+                        </div>
+                        <div>
+                          <Label className="text-govt-navy font-semibold text-base">Email</Label>
+                          <p className="text-lg mt-1 text-gray-800">{status.applicantEmail}</p>
                         </div>
                       </div>
 
+                      {/* Comments Section */}
                       {status.comments && (
                         <div className="pt-4 border-t">
-                          <Label className="text-govt-navy font-semibold">Comments</Label>
+                          <Label className="text-govt-navy font-semibold text-base">Additional Information</Label>
                           <p className="text-base mt-2 text-gray-700">{status.comments}</p>
                         </div>
                       )}

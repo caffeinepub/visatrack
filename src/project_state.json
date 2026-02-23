@@ -1,41 +1,19 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Website with reference number and email lookup functionality",
-  "architectural_notes": [],
+  "summary": "Visa status lookup application - displays applicant details (name, visa type, approval status, date) when searching by reference number and email",
+  "architectural_notes": [
+    "Application uses reference number and email as lookup keys for visa status",
+    "Sample data: reference 4906670766 + jr321134@gmail.com returns Rojee Sharma, Work Visa Approved, current date"
+  ],
   "known_issues": [],
   "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Australian Government coat of arms logo in white/light color suitable for dark blue header background (aus-govt-logo.dim_200x80.png)",
   "existing_features": [
     {
-      "id": "feature-redesign-the-australianvisacheckpage-to-match-the-australian-government-department-of-home-affairs-website-style-shown-in-the-uploaded-image-including-the-dark-blue-header-with-the-australian-government-coat-of-arms-logo-navigation-menu-and-search-icon",
-      "title": "Redesign the AustralianVisaCheckPage to match the Australian Government Department of Home Affairs website style shown in the uploaded image, including the dark blue header with the Australian Government coat of arms logo, navigation menu, and search icon",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-main-content-area-to-use-the-same-blue-background-006cb5-as-shown-in-the-uploaded-image-with-the-heading-check-visa-details-and-conditions-in-large-white-text",
-      "title": "Update the main content area to use the same blue background (#006CB5) as shown in the uploaded image with the heading 'Check visa details and conditions' in large white text",
+      "id": "feature-ensure-the-australianvisacheckpage-displays-all-retrieved-fields-applicant-name-visa-type-status-approval-date-in-a-clear-readable-format-matching-the-australian-government-website-style",
+      "title": "Ensure the AustralianVisaCheckPage displays all retrieved fields (applicant name, visa type, status, approval date) in a clear, readable format matching the Australian Government website style",
       "reqIds": [
         "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-maintain-the-existing-functionality-to-check-visa-application-status-using-reference-number-applicationid-and-email-ensuring-the-input-fields-are-prominently-displayed-and-clearly-labeled",
-      "title": "Maintain the existing functionality to check visa application status using reference number (applicationId) and email, ensuring the input fields are prominently displayed and clearly labeled",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-navigation-links-in-the-header-area-matching-the-government-website-style-including-immiaccount-visa-entitlement-verification-online-vevo-and-my-tourist-refund-scheme-trs",
-      "title": "Add navigation links in the header area matching the government website style, including 'ImmiAccount', 'Visa Entitlement Verification Online (VEVO)', and 'My Tourist Refund Scheme (TRS)'",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -43,12 +21,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement reference number and email lookup feature",
+      "summary": "Display applicant details (Rojee Sharma, Work Visa Approved, today's date) for reference 4906670766 and email jr321134@gmail.com",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "When a user enters reference number '4906670766' and email 'jr321134@gmail.com' on the visa check page, display the following details: applicant name 'Rojee Sharma', visa type 'Work Visa', status 'Approved', and today's date as the approval date",
+      "reqIds": [
+        "REQ-1"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Visa Check",
+  "projectName": "Visa Track",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
